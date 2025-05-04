@@ -85,7 +85,7 @@
     enable = true;
     nssmdns4 = true;
     nssmdns6 = true;
-    publish: {
+    publish = {
       enable = true;
       addresses = true;
     };

@@ -83,9 +83,21 @@
   # MDNS
   services.avahi = {
     enable = true;
-    nssmdns = true;
-    openFirewall = true;
+    nssmdns4 = true;
+    nssmdns6 = true;
+    publish: {
+      enable = true;
+      addresses = true;
+    };
   };
+
+ # PipeWire
+ services.pipewire = {
+   enable = true;
+   alsa.enable = true;
+   pulse.enable = true;
+   wireplumber.enable = true;
+ };
 
   # Virtualization with Docker
   virtualisation.docker.enable = true;
@@ -108,7 +120,7 @@
   # networking.firewall.allowedTCPPorts = [ ... ];
   # networking.firewall.allowedUDPPorts = [ ... ];
   # Or disable the firewall altogether.
-  # networking.firewall.enable = false;
+  networking.firewall.enable = false;
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions

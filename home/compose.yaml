@@ -3,9 +3,55 @@ services:
     container_name: homeassistant
     image: "ghcr.io/home-assistant/home-assistant:stable"
     volumes:
-      - /homeassistant:/config
+      - ~/homeassistant:/config
       - /etc/localtime:/etc/localtime:ro
       - /run/dbus:/run/dbus:ro
     restart: unless-stopped
     privileged: true
     network_mode: host
+
+  wyoming-satellite:
+    build: homeassistant/addons/wyoming-satellite
+    container_name: wyoming-satellite
+    restart: unless-stopped
+    ports:
+      - 10700:10700
+    devices:
+      - /dev/snd:/dev/snd
+    command: >
+      --name "Main Satellite"
+      --uri tcp://0.0.0.0:10700
+      --mic-command 'arecord -D plughw:1,0 -r 16000 -c 1 -f S16_LE -t raw'
+      --snd-command 'aplay -D plughw:1,0 -r 22050 -c 1 -f S16_LE -t raw'
+
+  wyoming-openwakeword:
+    image: rhasspy/wyoming-openwakeword
+    container_name: wyoming-openwakeword
+    restart: unless-stopped
+    ports:
+      - 10400:10400
+    volumes:
+      - ~/homeassistant/addons/wyoming-openwakeword-custom:/custom
+    command: >
+      --custom-model-dir /custom
+      --preload-model 'yo_bitch'
+
+  wyoming-whisper:
+    image: rhasspy/wyoming-whisper
+    container_name: wyoming-whisper
+    restart: unless-stopped
+    ports:
+      - 10300:10300
+    command: >
+      --model tiny-int8
+      --language en
+
+  wyoming-piper:
+    image: rhasspy/wyoming-piper
+    container_name: wyoming-piper
+    restart: unless-stopped
+    ports:
+      - 10200:10200
+    command: >
+      --voice en_US-lessac-medium
+

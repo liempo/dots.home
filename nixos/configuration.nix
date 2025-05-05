@@ -51,9 +51,9 @@
   users.users.liempo = {
     isNormalUser = true;
     description = "Liempo";
-    extraGroups = [ "wheel" "networkmanager" "docker" ];
+    extraGroups = [ "wheel" "networkmanager" "docker" "audio" ];
     packages = with pkgs; [
-     stow fzf ripgrep thefuck tmux
+      fzf ripgrep stow tmux zoxide alsa-utils
     ];
     shell = pkgs.zsh;
   };
@@ -61,13 +61,10 @@
   # Enable automatic login for the user.
   services.getty.autologinUser = "liempo";
 
-  # Allow unfree packages
-  nixpkgs.config.allowUnfree = true;
-
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
-    git zsh neovim docker-compose
+    git wget zsh neovim docker-compose
   ];
 
   environment.variables.EDITOR = "neovim";
@@ -91,14 +88,6 @@
     };
   };
 
- # PipeWire
- services.pipewire = {
-   enable = true;
-   alsa.enable = true;
-   pulse.enable = true;
-   wireplumber.enable = true;
- };
-
   # Virtualization with Docker
   virtualisation.docker.enable = true;
 
@@ -107,11 +96,12 @@
   programs.zsh = {
     enable = true;
     shellAliases = {
+      dots = "nvim ~/.dots";
       update = "sudo nixos-rebuild switch";
     };
     ohMyZsh = {
       enable = true;
-      plugins = ["git" "thefuck"];
+      plugins = ["git"];
       theme = "fino";
     };
   };

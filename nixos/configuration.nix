@@ -15,7 +15,6 @@
   boot.loader.efi.canTouchEfiVariables = true;
 
   networking.hostName = "homestation"; # Define your hostname.
-  # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
 
   # Enable networking
   networking.networkmanager.enable = true;
@@ -53,7 +52,7 @@
     description = "Liempo";
     extraGroups = [ "wheel" "networkmanager" "docker" "audio" ];
     packages = with pkgs; [
-      fzf ripgrep stow tmux zoxide alsa-utils
+      fzf ripgrep stow tmux zoxide alsa-utils fastfetch
     ];
     shell = pkgs.zsh;
   };

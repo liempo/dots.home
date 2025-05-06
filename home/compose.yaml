@@ -1,29 +1,4 @@
 services:
-  homeassistant:
-    container_name: homeassistant
-    image: "ghcr.io/home-assistant/home-assistant:stable"
-    volumes:
-      - ~/homeassistant:/config
-      - /etc/localtime:/etc/localtime:ro
-      - /run/dbus:/run/dbus:ro
-    restart: unless-stopped
-    privileged: true
-    network_mode: host
-
-  wyoming-satellite:
-    build: homeassistant/addons/wyoming-satellite
-    container_name: wyoming-satellite
-    restart: unless-stopped
-    ports:
-      - 10700:10700
-    devices:
-      - /dev/snd:/dev/snd
-    command: >
-      --name "Main Satellite"
-      --uri tcp://0.0.0.0:10700
-      --mic-command 'arecord -D plughw:1,0 -r 16000 -c 1 -f S16_LE -t raw'
-      --snd-command 'aplay -D plughw:1,0 -r 22050 -c 1 -f S16_LE -t raw'
-
   wyoming-openwakeword:
     image: rhasspy/wyoming-openwakeword
     container_name: wyoming-openwakeword
@@ -35,23 +10,42 @@ services:
     command: >
       --custom-model-dir /custom
       --preload-model 'yo_bitch'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:10400"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
-  wyoming-whisper:
-    image: rhasspy/wyoming-whisper
-    container_name: wyoming-whisper
+  wyoming-satellite:
+    build: homeassistant/addons/wyoming-satellite
+    container_name: wyoming-satellite
     restart: unless-stopped
     ports:
-      - 10300:10300
+      - 10700:10700
+    devices:
+      - /dev/snd:/dev/snd
+    volumes:
+      - ~/.dots/home/.alerts:/sounds
+    depends_on:
+      - wyoming-openwakeword
     command: >
-      --model tiny-int8
-      --language en
+      --name "Main Satellite"
+      --uri tcp://0.0.0.0:10700
+      --mic-command 'arecord -D plughw:1,0 -r 16000 -c 1 -f S16_LE -t raw'
+      --snd-command 'aplay -D plughw:1,0 -r 22050 -c 1 -f S16_LE -t raw'
+      --awake-wav /sounds/awake.wav
+      --done-wav /sounds/done.wav
+      --timer-finished-wav /sounds/timer_finished.wav
 
-  wyoming-piper:
-    image: rhasspy/wyoming-piper
-    container_name: wyoming-piper
+  homeassistant:
+    container_name: homeassistant
+    image: "ghcr.io/home-assistant/home-assistant:stable"
+    volumes:
+      - ~/homeassistant:/config
+      - /etc/localtime:/etc/localtime:ro
+      - /run/dbus:/run/dbus:ro
     restart: unless-stopped
-    ports:
-      - 10200:10200
-    command: >
-      --voice en_US-lessac-medium
+    privileged: true
+    network_mode: host
+
 

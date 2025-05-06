@@ -18,7 +18,7 @@ function tat {
   elif [ -f .envrc ]; then
     direnv exec / tmux new-session -s "$name"
   else
-    tmux new-session -s "$name"
+    tmux new-session -s "$name"  
   fi
 }
 
@@ -27,3 +27,8 @@ function ztat {
   z $1
   tat
 }
+
+# Auto-attach only if inside an SSH session and no tmux already
+if [[ -n "$SSH_CONNECTION" && -z "$TMUX" && -t 1 ]]; then
+  tat
+fi

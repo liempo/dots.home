@@ -1,4 +1,7 @@
 services:
+
+  # Home Assistant
+
   wyoming-openwakeword:
     image: rhasspy/wyoming-openwakeword
     container_name: wyoming-openwakeword
@@ -32,7 +35,10 @@ services:
       --name "Main Satellite"
       --uri tcp://0.0.0.0:10700
       --mic-command 'arecord -D plughw:1,0 -r 16000 -c 1 -f S16_LE -t raw'
+      --mic-seconds-to-mute-after-awake-wav 0
+      --mic-noise-suppression 1
       --snd-command 'aplay -D plughw:1,0 -r 22050 -c 1 -f S16_LE -t raw'
+      --snd-command-rate 22050
       --awake-wav /sounds/awake.wav
       --done-wav /sounds/done.wav
       --timer-finished-wav /sounds/timer_finished.wav
@@ -47,5 +53,38 @@ services:
     restart: unless-stopped
     privileged: true
     network_mode: host
+  
+  # Multimedia
 
+  deluge:
+    image: lscr.io/linuxserver/deluge:latest
+    container_name: deluge
+    environment:
+      - PUID=1000
+      - PGID=100
+      - TZ=Etc/UTC
+      - DELUGE_LOGLEVEL=error #optional
+    volumes:
+      - /home/liempo/.config/deluge:/config
+      - /home/liempo/downloads:/downloads
+    ports:
+      - 8112:8112
+      - 6881:6881
+      - 6881:6881/udp
+      - 58846:58846 #optional
+    restart: unless-stopped
 
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - /home/liempo/.config/sonarr:/config
+      - /home/liempo/media/tv:/tv #optional
+      - /home/liempo/downloads:/downloads
+    ports:
+      - 8989:8989
+    restart: unless-stopped

@@ -63,7 +63,7 @@
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
-    git wget zsh neovim docker-compose
+    git wget zsh neovim docker-compose 
   ];
 
   environment.variables.EDITOR = "neovim";
@@ -90,6 +90,38 @@
   # Virtualization with Docker
   virtualisation.docker.enable = true;
 
+  # Samba 
+  services.samba = {
+    enable = true;
+    openFirewall = true;
+    settings = {
+      global = {
+        "workgroup" = "WORKGROUP";
+        "server string" = "Homestation";
+        "netbios name" = "Homestation";
+        "security" = "user";
+        "hosts allow" = "192.168.0. 127.0.0.1 localhost";
+        "hosts deny" = "0.0.0.0/0";
+        "guest account" = "nobody";
+        "map to guest" = "bad user";
+      };
+      "home" = {
+        "path" = "/home/liempo";
+        "browseable" = "yes";
+        "read only" = "no";
+        "guest ok" = "no";
+        "create mask" = "0644";
+        "directory mask" = "0755";
+        "force user" = "liempo";
+      };
+    };
+  };
+
+  services.samba-wsdd = {
+    enable = true;
+    openFirewall = true;
+  };
+
   ### Programs
 
   programs.zsh = {
@@ -110,6 +142,7 @@
   # networking.firewall.allowedUDPPorts = [ ... ];
   # Or disable the firewall altogether.
   networking.firewall.enable = false;
+  networking.firewall.allowPing = true;
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions

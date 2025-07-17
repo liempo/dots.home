@@ -13,8 +13,11 @@
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
+  boot.extraModprobeConfig = ''
+    options snd_hda_intel index=1
+  '';
 
-  networking.hostName = "homestation"; # Define your hostname.
+  networking.hostName = "homestation";
 
   # Enable networking
   networking.networkmanager.enable = true;
@@ -40,6 +43,9 @@
     LC_IDENTIFICATION="en_PH.UTF-8";
   };
 
+  # Hardware
+  hardware.alsa.enablePersistence = true;
+
   # Configure keymap in X11
   services.xserver.xkb = {
     layout = "us";
@@ -52,7 +58,7 @@
     description = "Liempo";
     extraGroups = [ "wheel" "networkmanager" "docker" "audio" ];
     packages = with pkgs; [
-      fzf ripgrep stow tmux zoxide alsa-utils fastfetch
+      fzf ripgrep stow tmux zoxide alsa-utils fastfetch cava
     ];
     shell = pkgs.zsh;
   };
@@ -74,6 +80,14 @@
   services.openssh = {
     enable = true;
     settings.PasswordAuthentication = true;
+  };
+
+  # Pipewire serivce
+  security.rtkit.enable = true;
+  services.pipewire = {
+    enable = true;
+    alsa.enable = true;
+    pulse.enable = true;
   };
 
   # MDNS

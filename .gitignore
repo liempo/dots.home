@@ -3,3 +3,4 @@ home/.config/radarr
 home/.config/sonarr
 home/.config/deluge
 home/.config/prowlarr
+home/.config/systemd

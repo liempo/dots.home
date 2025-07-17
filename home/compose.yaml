@@ -53,7 +53,7 @@ services:
     restart: unless-stopped
     privileged: true
     network_mode: host
-  
+
   # Multimedia
   ### Use local IP address for the fuckarr apps
 
@@ -84,7 +84,7 @@ services:
       - TZ=Asia/Manila
     ports:
       - "${PORT:-8191}:8191"
-    restart: unless-stopped 
+    restart: unless-stopped
 
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
@@ -130,9 +130,19 @@ services:
     volumes:
       - /home/liempo/.config/jellyfin:/config
       - /home/liempo/media/tv:/data/tv
-      - /home/liempo/media/moveis:/data/movies
+      - /home/liempo/media/movies:/data/movies
     ports:
       - 8096:8096
       - 8920:8920 #optional
       - 7359:7359/udp #optional
     restart: unless-stopped
+
+  airport:
+    container_name: airport
+    image: mikebrady/shairport-sync:latest
+    network_mode: host
+    restart: unless-stopped
+    devices:
+      - /dev/snd:/dev/snd
+    command: -o alsa 
+    

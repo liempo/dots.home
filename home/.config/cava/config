@@ -81,10 +81,10 @@
 #
 
 ; method = pulse
-;s ource = auto
+; source = auto
 
-method = pipewire
-source = 51
+method = pulse
+source = alsa_output.pci-0000_03_00.6.analog-stereo.monitor 
 
 ; method = alsa
 ; source = plughw:1,1

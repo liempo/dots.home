@@ -79,14 +79,15 @@
 # For jack 'source' will be the name of the JACK server to connect to, e.g. 'foobar'. Default: 'default'.
 # README.md contains further information on how to setup CAVA for JACK.
 #
+
 ; method = pulse
-; source = auto
+;s ource = auto
 
 method = pipewire
-source = alsa:pcm:1
+source = 51
 
 ; method = alsa
-; source = plughw:1,0
+; source = plughw:1,1
 
 ; method = fifo
 ; source = /tmp/mpd.fifo

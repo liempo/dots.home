@@ -58,7 +58,9 @@
     description = "Liempo";
     extraGroups = [ "wheel" "networkmanager" "docker" "audio" ];
     packages = with pkgs; [
-      fzf ripgrep stow tmux zoxide alsa-utils fastfetch cava
+      fzf ripgrep stow tmux zoxide
+      alsa-utils pulseaudio nqptp shairport-sync
+      fastfetch cava
     ];
     shell = pkgs.zsh;
   };
@@ -82,7 +84,7 @@
     settings.PasswordAuthentication = true;
   };
 
-  # Pipewire serivce
+  # Pipewire services and other audio services
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true;
@@ -98,6 +100,7 @@
     publish = {
       enable = true;
       addresses = true;
+      userServices = true;
     };
   };
 
@@ -136,7 +139,55 @@
     openFirewall = true;
   };
 
-  ### Programs
+  ### Systemd
+
+  systemd.services = {
+    nqptp = {
+      description = "Network Precision Time Protocol for Shairport Sync";
+      wantedBy = [ "multi-user.target" ];
+      after = [ "network.target" ];
+      serviceConfig = {
+        ExecStart = "${pkgs.nqptp}/bin/nqptp";
+        Restart = "always";
+        RestartSec = "5s";
+      };
+    };
+  };
+
+  systemd.user.services = {
+    shairport-sync = {
+      description = "AirPlay 2 functionality";
+      wantedBy = [ "default.target" ];
+      after       = [ "pipewire-pulse.service" ];
+      serviceConfig = {
+        ExecStart = "${pkgs.shairport-sync-airplay2}/bin/shairport-sync -c /etc/shairport-sync.conf";
+        Restart          = "on-failure";
+        RuntimeDirectory = "shairport-sync";
+      };
+    };
+  };
+
+  ### Environment config
+  environment.etc."shairport-sync.conf".text = ''
+    general =
+    {
+      name = "Office Speakers";
+      output_backend = "pa";
+      port = 7000;
+      airplay_device_id_offset = 0;
+    };
+    pa =
+    {
+    	application_name = "Shairport Sync";
+      sink = "alsa:acp:Generic_1:3:playback"
+    };
+    diagnostics =
+    {
+      log_verbosity = 1;
+    };
+  '';
+
+  ### Program config
 
   programs.zsh = {
     enable = true;

@@ -136,13 +136,4 @@ services:
       - 8920:8920 #optional
       - 7359:7359/udp #optional
     restart: unless-stopped
-
-  airport:
-    container_name: airport
-    image: mikebrady/shairport-sync:latest
-    network_mode: host
-    restart: unless-stopped
-    devices:
-      - /dev/snd:/dev/snd
-    command: -o alsa 
     

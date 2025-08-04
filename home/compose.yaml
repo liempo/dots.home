@@ -5,9 +5,6 @@ services:
     image: rhasspy/wyoming-openwakeword
     container_name: wyoming-openwakeword
     restart: unless-stopped
-    profiles:
-      - homeassistant
-      - voice
     ports:
       - 10400:10400
     volumes:
@@ -25,9 +22,6 @@ services:
     build: homeassistant/addons/wyoming-satellite
     container_name: wyoming-satellite
     restart: unless-stopped
-    profiles:
-      - homeassistant
-      - voice
     ports:
       - 10700:10700
     devices:
@@ -57,8 +51,6 @@ services:
   homeassistant:
     container_name: homeassistant
     image: "ghcr.io/home-assistant/home-assistant:stable"
-    profiles:
-      - homeassistant
     volumes:
       - ~/homeassistant:/config
       - ~/.certs:/certs:ro
@@ -74,9 +66,6 @@ services:
   deluge:
     image: lscr.io/linuxserver/deluge:latest
     container_name: deluge
-    profiles:
-      - multimedia
-      - download
     environment:
       - PUID=1000
       - PGID=100
@@ -99,9 +88,6 @@ services:
   flaresolverr:
     image: ghcr.io/flaresolverr/flaresolverr:latest
     container_name: flaresolverr
-    profiles:
-      - multimedia
-      - download
     environment:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - LOG_HTML=${LOG_HTML:-false}
@@ -119,9 +105,6 @@ services:
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
     container_name: prowlarr
-    profiles:
-      - multimedia
-      - download
     depends_on:
       flaresolverr:
         condition: service_healthy
@@ -143,9 +126,6 @@ services:
   sonarr:
     image: lscr.io/linuxserver/sonarr:latest
     container_name: sonarr
-    profiles:
-      - multimedia
-      - download
     depends_on:
       prowlarr:
         condition: service_healthy
@@ -171,9 +151,6 @@ services:
   jellyfin:
     image: lscr.io/linuxserver/jellyfin:latest
     container_name: jellyfin
-    profiles:
-      - multimedia
-      - media
     depends_on:
       sonarr:
         condition: service_healthy

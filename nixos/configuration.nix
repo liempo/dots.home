@@ -58,8 +58,9 @@
     description = "Liempo";
     extraGroups = [ "wheel" "networkmanager" "docker" "audio" ];
     packages = with pkgs; [
-      fzf ripgrep stow tmux zoxide
+      fzf ripgrep stow tmux zoxide neovim
       alsa-utils pulseaudio nqptp shairport-sync
+      docker-compose 
       fastfetch cava
     ];
     shell = pkgs.zsh;
@@ -71,7 +72,7 @@
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
-    git wget zsh neovim docker-compose 
+    git wget zsh
   ];
 
   environment.variables.EDITOR = "neovim";
@@ -138,6 +139,9 @@
     enable = true;
     openFirewall = true;
   };
+
+  services.tailscale.enable = true;
+  services.tailscale.useRoutingFeatures = "both";
 
   ### Systemd
 

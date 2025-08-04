@@ -26,18 +26,24 @@ services:
     ports:
       - 10700:10700
     devices:
-      - /dev/snd:/dev/snd
+      - "/dev/snd"
+    environment:
+      PULSE_SERVER: unix:/tmp/pulse/native
+      XDG_RUNTIME_DIR: /tmp/pulse
     volumes:
+      - /run/user/1000/pulse/native:/tmp/pulse/native
+      - /run/user/1000:/tmp/pulse
+      - ~/.config/pulse/cookie:/tmp/pulse/cookie
       - ~/.dots/home/.alerts:/sounds
     depends_on:
       - wyoming-openwakeword
     command: >
       --name "Main Satellite"
       --uri tcp://0.0.0.0:10700
-      --mic-command 'arecord -D plughw:1,0 -r 16000 -c 1 -f S16_LE -t raw'
+      --mic-command 'parecord --rate=16000 --channels=1 --format=s16le --raw'
       --mic-seconds-to-mute-after-awake-wav 0
       --mic-noise-suppression 1
-      --snd-command 'aplay -D plughw:1,0 -r 22050 -c 1 -f S16_LE -t raw'
+      --snd-command 'paplay --rate=22050 --channels=1 --format=s16le --raw'
       --snd-command-rate 22050
       --awake-wav /sounds/awake.wav
       --done-wav /sounds/done.wav
@@ -48,6 +54,7 @@ services:
     image: "ghcr.io/home-assistant/home-assistant:stable"
     volumes:
       - ~/homeassistant:/config
+      - ~/.certs:/certs:ro
       - /etc/localtime:/etc/localtime:ro
       - /run/dbus:/run/dbus:ro
     restart: unless-stopped
@@ -135,5 +142,23 @@ services:
       - 8096:8096
       - 8920:8920 #optional
       - 7359:7359/udp #optional
+    restart: unless-stopped
+
+  # Others
+
+  actual:
+    container_name: actual
+    image: docker.io/actualbudget/actual-server:latest
+    ports:
+      - '5006:5006'
+    volumes:
+      - ~/actual:/data
+      - ~/.certs:/data/certs
+    healthcheck:
+      test: ['CMD-SHELL', 'node src/scripts/health-check.js']
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     restart: unless-stopped
     

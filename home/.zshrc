@@ -1,5 +1,9 @@
-# Activate zoxide
 eval "$(zoxide init zsh)"
+
+## Aliases
+alias update="sudo nixos-rebuild switch --flake \"$HOME/.dots#homestation\""
+
+## Functions
 
 # Run 'ls' every 'cd'
 function chpwd() {
@@ -7,8 +11,8 @@ function chpwd() {
     ls -al
 }
 
-#  tmux attach or create session
-function tat {
+# tmux attach a session to the current directory
+function tmux-attach { 
   name=$(basename `pwd` | sed -e 's/\.//g')
   if tmux ls 2>&1 | grep "$name"; then
     tmux attach -t "$name"
@@ -18,10 +22,3 @@ function tat {
     tmux new-session -s "$name"
   fi
 }
-
-# Auto-attach only if inside an SSH session and no tmux already
-if [[ -z "$TMUX" && -t 1 ]]; then
-  tat
-fi
-
-

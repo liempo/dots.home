@@ -72,7 +72,7 @@
     git zsh
   ];
 
-  environment.variables.EDITOR = "neovim";
+  environment.variables.EDITOR = "nvim";
 
   ### Services
 
@@ -82,52 +82,8 @@
     settings.PasswordAuthentication = true;
   };
 
-  # MDNS
-  services.avahi = {
-    enable = true;
-    nssmdns4 = true;
-    nssmdns6 = true;
-    publish = {
-      enable = true;
-      addresses = true;
-      userServices = true;
-    };
-  };
-
   # Virtualization with Docker
   virtualisation.docker.enable = true;
-
-  # Samba 
-  services.samba = {
-    enable = true;
-    openFirewall = true;
-    settings = {
-      global = {
-        "workgroup" = "WORKGROUP";
-        "server string" = "Homestation";
-        "netbios name" = "Homestation";
-        "security" = "user";
-        "hosts allow" = "192.168.0. 127.0.0.1 localhost";
-        "hosts deny" = "0.0.0.0/0";
-        "guest account" = "nobody";
-        "map to guest" = "bad user";
-      };
-      "home" = {
-        "path" = "/home/liempo";
-        "browseable" = "yes";
-        "read only" = "no";
-        "guest ok" = "no";
-        "create mask" = "0644";
-        "directory mask" = "0755";
-        "force user" = "liempo";
-      };
-    };
-  };
-
-  services.samba-wsdd = {
-    enable = true;
-    openFirewall = true;
-  };
 
   services.tailscale.enable = true;
   services.tailscale.useRoutingFeatures = "both";
@@ -135,9 +91,6 @@
   ### Program config
   programs.zsh = {
     enable = true;
-    shellAliases = {
-      update = "sudo nixos-rebuild switch";
-    };
     ohMyZsh = {
       enable = true;
       plugins = ["git"];

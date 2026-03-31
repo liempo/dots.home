@@ -9,18 +9,12 @@ in
   home.stateVersion = "24.11";
 
   home.file.".zshrc".source = "${dotfiles}/.zshrc";
+  home.file."calendar".source = "${dotfiles}/calendar";
+  home.file."nginx".source = "${dotfiles}/nginx";
+  home.file."compose.yaml".source = "${dotfiles}/compose.yaml";
 
-  programs.git = {
-    enable = true;
-    userName = "Liempo";
-    userEmail = "gonzalesalec@gmail.com";
-  };
+  programs.git.enable = true;
 
-  home.file.".gitconfig".text = ''
-    [user]
-    	email = gonzalesalec@gmail.com
-    	name = Liempo
-  '';
 
   programs.tmux = {
     enable = true;

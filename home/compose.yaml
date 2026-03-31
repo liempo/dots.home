@@ -1,7 +1,6 @@
 # Calendar stack: configure home/calendar/.env (copy from home/calendar/.env.example)
 include:
   - path: calendar/compose.yaml
-  - path: openclaw/compose.yaml
 
 services:
   nginx:

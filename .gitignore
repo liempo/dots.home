@@ -1,0 +1,14 @@
+# Secrets / local data
+.env
+
+# Calendar app secrets/data
+/home/calendar/credentials/*.json
+/home/calendar/data/
+
+# Radicale: ignore all, except etc.*.example
+/home/calendar/radicale/**
+!/home/calendar/radicale/**/etc.*.example
+
+# Nginx SSL private material
+/home/nginx/ssl/
+

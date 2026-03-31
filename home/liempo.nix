@@ -9,9 +9,6 @@ in
   home.stateVersion = "24.11";
 
   home.file.".zshrc".source = "${dotfiles}/.zshrc";
-  home.file."calendar".source = "${dotfiles}/calendar";
-  home.file."nginx".source = "${dotfiles}/nginx";
-  home.file."compose.yaml".source = "${dotfiles}/compose.yaml";
 
   programs.git.enable = true;
 

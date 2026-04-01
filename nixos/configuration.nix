@@ -86,6 +86,7 @@
   virtualisation.docker.enable = true;
 
   ### Program config
+
   programs.zsh = {
     enable = true;
     ohMyZsh = {

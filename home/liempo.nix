@@ -12,7 +12,6 @@ in
 
   programs.git.enable = true;
 
-
   programs.tmux = {
     enable = true;
     extraConfig = builtins.readFile "${dotfiles}/.config/tmux/tmux.conf";

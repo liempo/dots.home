@@ -7,7 +7,7 @@
 {
   imports =
     [ # Include the results of the hardware scan.
-      ./hardware-configuration.nix
+      ./hardware.nix
     ];
 
   # Bootloader.
@@ -95,7 +95,6 @@
       theme = "fino";
     };
   };
-
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions

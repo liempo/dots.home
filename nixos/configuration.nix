@@ -10,6 +10,12 @@
       ./hardware.nix
     ];
 
+  sops = {
+    defaultSopsFile = ./secrets.yaml;
+    age.keyFile = "/var/lib/sops-nix/key.txt";
+    secrets.hermes = { format = "yaml"; };
+  };
+
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;

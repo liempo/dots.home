@@ -65,9 +65,15 @@
   sops = {
     defaultSopsFile = ./secrets.yaml;
     age.keyFile = "/var/lib/sops-nix/key.txt";
-    secrets.hermes = { 
+    secrets.hermes_env = { 
       owner = "hermes";
       format = "yaml"; 
+      restartUnits = [ "hermes-agent.service" ];
+    };
+    secrets.hermes_auth = {
+      owner = "hermes";
+      format = "yaml"; 
+      restartUnits = [ "hermes-agent.service" ];
     };
   };
 

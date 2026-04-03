@@ -1,8 +1,8 @@
 # Reusable keys (YAML anchors)
 keys:
-  - &liempo_age age1mgg262k9da4g8u2c4822w2a50uzkv90d34du3n8ea3gc6l8m8vwse0ggak
+  - &hermes_age age1mgg262k9da4g8u2c4822w2a50uzkv90d34du3n8ea3gc6l8m8vwse0ggak
 creation_rules:
-  - path_regex: secrets/[^/]+\.(yaml|json)$
+  - path_regex: ^nixos/secrets\.yaml$
     key_groups:
       - age:
-          - *liempo_age
+          - *hermes_age

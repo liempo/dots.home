@@ -1,40 +1,22 @@
-# Edit this configuration file to define what should be installed on
-# your system.  Help is available in the configuration.nix(5) man page
-# and in the NixOS manual (accessible by running ‘nixos-help’).
-
 { config, pkgs, ... }:
 
 {
-  imports =
-    [ # Include the results of the hardware scan.
-      ./hardware.nix
-    ];
 
-  sops = {
-    defaultSopsFile = ./secrets.yaml;
-    age.keyFile = "/var/lib/sops-nix/key.txt";
-    secrets.hermes = { format = "yaml"; };
-  };
+  imports = [ ./hardware.nix ];
 
-  # Bootloader.
+  # ── Bootloader ─────────────────────────────────────────────────────────
+
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.extraModprobeConfig = ''
     options snd_hda_intel index=1
   '';
 
-  networking.hostName = "homestation";
 
-  # Enable flakes
+# ── System ───────────────────────────────────────────────────────────────
+
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
-
-  # Enable networking
-  networking.networkmanager.enable = true;
-
-  # Set your time zone.
   time.timeZone = "Asia/Manila";
-
-  # Select internationalisation properties.
   i18n.defaultLocale = "en_PH.UTF-8";
 
   i18n.extraLocaleSettings = {
@@ -58,7 +40,6 @@
     variant = "";
   };
 
-  # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.liempo = {
     isNormalUser = true;
     description = "Liempo";
@@ -77,10 +58,21 @@
   environment.systemPackages = with pkgs; [
     git zsh
   ];
-
   environment.variables.EDITOR = "nvim";
 
-  ### Services
+# ── Secrets management ───────────────────────────────────────────────────
+
+  sops = {
+    defaultSopsFile = ./secrets.yaml;
+    age.keyFile = "/var/lib/sops-nix/key.txt";
+    secrets.hermes = { 
+      owner = "hermes";
+      format = "yaml"; 
+    };
+  };
+
+
+# ── Services ────────────────────────────────────────────────────────────
 
   # OpenSSH daemon
   services.openssh = {
@@ -91,7 +83,7 @@
   # Virtualization with Docker
   virtualisation.docker.enable = true;
 
-  ### Program config
+  # ── Program config ──────────────────────────────────────────────────────
 
   programs.zsh = {
     enable = true;

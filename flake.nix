@@ -29,7 +29,8 @@
           modules = [
             ./nixos/configuration.nix
             ./nixos/networking.nix
-            
+            ./nixos/hermes.nix
+
             sops-nix.nixosModules.sops
             hermes-agent.nixosModules.default
 

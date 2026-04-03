@@ -6,16 +6,17 @@ let
   nginxCertDir = "/var/lib/nginx/ssl";
 in
 {
-  # Open ports in the firewall.
+  networking.hostName = "homestation";
+  networking.networkmanager.enable = true;
   networking.firewall.allowedTCPPorts = [ 80 443 22 ];
-  # networking.firewall.allowedUDPPorts = [ ... ];
-  # Or disable the firewall altogether.
-  # networking.firewall.enable = false;
+
+  # ── Tailscale ──────────────────────────────────────────────────────────
 
   services.tailscale.enable = true;
   services.tailscale.useRoutingFeatures = "both";
 
-  # Ensure nginx has a readable place for certs/keys (nginx runs with ProtectHome=true).
+  # ── Nginx ──────────────────────────────────────────────────────────────
+
   systemd.tmpfiles.rules = [
     "d ${nginxCertDir} 0750 root nginx -"
   ];

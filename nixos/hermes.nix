@@ -86,9 +86,9 @@ in
 
       stt = {
         enabled = true;
-        provider = "local";
-        local = {
-          model = "base";
+        provider = "openai";
+        openai = {
+          model = "whisper-1";
         };
       };
 

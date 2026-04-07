@@ -5,15 +5,16 @@
 calendar/credentials/*.json
 calendar/data/
 
-# Radicale: ignore all, except etc.*.example
+# Radicale
+# - Track config files in radicale/etc
+# - Ignore runtime storage (radicale/var) and real credential material (users)
+calendar/radicale/var/
+calendar/radicale/etc/users
 calendar/radicale/**
-!/calendar/radicale/**/etc.*.example
-
-# Nginx SSL private material
-nginx/ssl/
+!/calendar/radicale/etc/default.conf
+!/calendar/radicale/etc/rights
+!/calendar/radicale/etc/users.example
 
 # Hermes data
-hermes/data/
-
-# Firecrawl local overrides (optional; see hermes/firecrawl/.env.example)
-hermes/firecrawl/.env
+hermes/*
+!hermes/compose.yaml

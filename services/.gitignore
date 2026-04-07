@@ -12,3 +12,8 @@ calendar/radicale/**
 # Nginx SSL private material
 nginx/ssl/
 
+# Hermes data
+hermes/data/
+
+# Firecrawl local overrides (optional; see hermes/firecrawl/.env.example)
+hermes/firecrawl/.env

@@ -21,6 +21,7 @@ in
     "d ${nginxCertDir} 0750 root nginx -"
   ];
 
+
   # One-shot: copy Tailscale certs into nginx-readable directory.
   # Prereq: `sudo tailscale cert ${domain}` to create files in ${tsCertDir}.
   systemd.services.tailscale-nginx-sync = {
@@ -42,6 +43,7 @@ in
         "${nginxCertDir}/${domain}.key"
     '';
   };
+
 
   services.nginx = {
     enable = true;

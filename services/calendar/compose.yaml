@@ -1,14 +1,5 @@
 name: calendar
 
-# Radicale + per-calendar JSON configs (calendar/config/*.json).
-# Variables: .env in this directory (see .env.example).
-# HTTPS: nginx terminates TLS at /calendar/ → radicale:5232 (place nginx/ssl/cert.pem + key.pem; see nginx/ssl/README.txt).
-# Public CalDAV base: https://<host>/calendar/  — Apple Calendar: SSL on, port 443, path /calendar/<user>/
-# Copy config/*.json.example → config/<name>.json and set google-oauth-client.json (see config/README.md).
-# Google OAuth first-time auth (see config/README.md if localhost fails after Allow):
-#   docker compose run --rm -p 8090:8090 sync-google-astra python sync.py auth
-# GCP: add redirect URIs http://127.0.0.1:8090/ and http://localhost:8090/ to the OAuth client.
-
 x-ics-sync: &ics-sync
   build: ./sync-ics
   depends_on:
@@ -29,22 +20,6 @@ services:
     read_only: true
     security_opt:
       - "no-new-privileges=true"
-    environment:
-      RADICALE_RIGHTS: |-
-        [root]
-        user: .+
-        collection:
-        permissions: R
-
-        [principal]
-        user: .+
-        collection: {user}
-        permissions: RW
-
-        [calendars]
-        user: .+
-        collection: {user}/[^/]+
-        permissions: rw
     volumes:
       - ./radicale/etc:/radicale/etc
       - ./radicale/var:/radicale/var

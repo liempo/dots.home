@@ -43,8 +43,11 @@
     description = "Liempo";
     extraGroups = [ "wheel" "networkmanager" "docker" ];
     packages = with pkgs; [
-      tmux zoxide neovim
-      nodejs docker-compose 
+      tmux zoxide neovim btop
+      # For cursor ssh
+      nodejs
+      # services 
+      docker-compose 
     ];
     shell = pkgs.zsh;
   };

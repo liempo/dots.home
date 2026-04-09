@@ -1,3 +1,0 @@
-include:
-  - path: calendar/compose.yaml
-  - path: hermes/compose.yaml

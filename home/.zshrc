@@ -22,3 +22,15 @@ function tmux-attach {
     tmux new-session -s "$name"
   fi
 }
+
+# `services [compose-args...]`
+# - With no args: cd into ~/.dots/services
+# - With args: run `docker compose ...` from ~/.dots/services
+function services() {
+  local services_dir="$HOME/.dots/services"
+  builtin cd "$services_dir" || return
+  if [[ $# -eq 0 ]]; then
+    return 0
+  fi
+  docker compose "$@"
+}

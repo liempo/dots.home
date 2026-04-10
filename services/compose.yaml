@@ -1,0 +1,11 @@
+name: services
+
+# Parent compose entrypoint for all stacks under ./services.
+# Run from anywhere:
+#   services up -d
+# Or directly:
+#   docker compose -f services/compose.yaml up -d
+include:
+  - ./calendar/compose.yaml
+  - ./hermes/compose.yaml
+

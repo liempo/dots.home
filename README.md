@@ -105,6 +105,22 @@ Compose files are **per stack**, not a single root compose project:
 
 All containers in `services/hermes/compose.yaml` attach to the **default Compose network**, so Hermes can call Honcho by service name (e.g. `honcho_api:8000`) where the agent config points to it.
 
+## Hermes (NixOS module) custom container image
+
+If you are using the Hermes Agent NixOS module with `services.hermes-agent.container.enable = true`, you can bake extra tools into the base OCI image (so they survive container recreation when the identity hash changes).
+
+Build the custom image from this repo:
+
+```bash
+docker build -t hermes-agent:local -f system/hermes/Dockerfile system/hermes
+```
+
+Then point the NixOS module at it:
+
+- `services.hermes-agent.container.image = "hermes-agent:local";`
+
+Note: the NixOS module still uses its own entrypoint (`/data/current-entrypoint`); the custom image is used as the base filesystem layer.
+
 ## Data and trust boundaries
 
 - **On disk in git**: Nix modules, editor/shell config under `home/`, Compose definitions, sync scripts/Dockerfiles, non-secret Radicale `etc` templates.

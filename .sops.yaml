@@ -1,0 +1,10 @@
+keys:
+  - &liempo age15kck5j0rxdmdwjnfnj8ytzglydcmjp0d83vmlksm8np7flshcfjs2py80w
+  - &homestation age18nnwugguznel8dg22vyzdt2e7v0ak20qey5ytq32aad4gf393g6stasjt4
+
+creation_rules:
+  - path_regex: system/sops/secrets\.yaml$
+    key_groups:
+    - age:
+      - *liempo
+      - *homestation

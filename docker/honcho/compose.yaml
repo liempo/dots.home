@@ -1,22 +1,10 @@
-name: hermes
+name: honcho
 
 services:
-  dind:
-    image: docker:27-dind
-    container_name: docker
-    hostname: docker
-    privileged: true
-    environment:
-      DOCKER_TLS_CERTDIR: /certs
-    volumes:
-      - dind-data:/var/lib/docker
-      - dind-certs:/certs
-    restart: unless-stopped
-
   honcho_api:
     container_name: honcho_api
     build:
-      context: ./honcho-src
+      context: ./src
       dockerfile: Dockerfile
     entrypoint: ["sh", "docker/entrypoint.sh"]
     depends_on:
@@ -25,21 +13,21 @@ services:
       honcho_redis:
         condition: service_healthy
     ports:
-      - "127.0.0.1:8000:8000"
+      - "0.0.0.0:8000:8000"
 
     environment:
       - DB_CONNECTION_URI=postgresql+psycopg://postgres:postgres@honcho_database:5432/postgres
       - CACHE_URL=redis://honcho_redis:6379/0?suppress=true
       - CACHE_ENABLED=true
     env_file:
-      - path: ./honcho-src/.env
+      - path: ./.env
         required: false
     restart: unless-stopped
 
   honcho_deriver:
     container_name: honcho_deriver
     build:
-      context: ./honcho-src
+      context: ./src
       dockerfile: Dockerfile
     entrypoint: ["/app/.venv/bin/python", "-m", "src.deriver"]
     depends_on:
@@ -52,7 +40,7 @@ services:
       - CACHE_URL=redis://honcho_redis:6379/0?suppress=true
       - CACHE_ENABLED=true
     env_file:
-      - path: ./honcho-src/.env
+      - path: ./.env
         required: false
     restart: unless-stopped
 
@@ -69,7 +57,7 @@ services:
       - POSTGRES_PASSWORD=postgres
       - PGDATA=/var/lib/postgresql/data/pgdata
     volumes:
-      - ./honcho-src/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./src/database/init.sql:/docker-entrypoint-initdb.d/init.sql
       - honcho_pgdata:/var/lib/postgresql/data/
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
@@ -91,27 +79,6 @@ services:
       timeout: 5s
       retries: 5
 
-
-  hermes:
-    # image: nousresearch/hermes-agent:latest
-    build: ./core-src
-    container_name: hermes
-    restart: unless-stopped
-    command: gateway run
-    environment:
-      TZ: Asia/Manila
-      DOCKER_HOST: tcp://docker:2376
-      DOCKER_TLS_VERIFY: "1"
-      DOCKER_CERT_PATH: /certs/client
-    volumes:
-      - ./data:/opt/data
-      - ./core-src:/opt/hermes
-      - dind-certs:/certs:ro
-    depends_on:
-      - dind
-
 volumes:
-  dind-data:
-  dind-certs:
   honcho_pgdata:
   honcho_redis_data:

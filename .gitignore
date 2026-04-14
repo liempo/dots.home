@@ -1,0 +1,3 @@
+# Secrets / local data
+.env
+secrets/.age-key

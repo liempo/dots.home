@@ -18,7 +18,6 @@
   i18n.defaultLocale = "en_PH.UTF-8";
 
   i18n.extraLocaleSettings = {
-    LC_ALL = "en_US.UTF-8";
     LC_NUMERIC="en_PH.UTF-8";
     LC_TIME="en_PH.UTF-8";
     LC_COLLATE="en_PH.UTF-8";
@@ -41,7 +40,7 @@
   users.users.liempo = {
     isNormalUser = true;
     description = "Liempo";
-    extraGroups = [ "wheel" "networkmanager" "docker" ];
+    extraGroups = [ "wheel" "networkmanager" "docker" "hermes" ];
     packages = with pkgs; [
       tmux zoxide neovim btop
       # For cursor ssh

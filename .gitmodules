@@ -1,6 +1,0 @@
-[submodule "services/hermes/core-src"]
-	path = services/hermes/core-src
-	url = https://github.com/liempo/hermes-agent.git
-[submodule "services/hermes/honcho-src"]
-	path = services/hermes/honcho-src
-	url = https://github.com/plastic-labs/honcho.git

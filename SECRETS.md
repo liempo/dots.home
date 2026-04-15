@@ -94,9 +94,10 @@ sudo env SOPS_AGE_KEY_FILE=/var/lib/sops-nix/age-keys.txt \
 
 ## How NixOS passes secrets to services (quick)
 
-- `system/etc/nixos/sops.nix` points `sops-nix` at `secrets/secrets.yaml` and declares secrets like `hermes-env` and `hermes-auth`.
+- `system/sops/sops.nix` points `sops-nix` at `system/sops/secrets.yaml` and declares secrets (e.g. `hermes-env`, `hermes-auth`, **`calendar-env`**).
 - `sops-nix` materializes them as files (typically under `/run/secrets/...`).
-- `system/etc/hermes/hermes-agent.nix` reads them from `config.sops.secrets."<name>".path`.
+- Hermes: `system/hermes/hermes.nix` uses `config.sops.secrets."<name>".path`.
+- Calendar Compose: `system/services.nix` — **`calendar-env`** is the `calendar.service` `EnvironmentFile`.
 
 ## Recovery (short)
 

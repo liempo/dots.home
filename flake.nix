@@ -33,6 +33,7 @@
 
             sops-nix.nixosModules.sops
             ./system/sops/sops.nix
+            ./system/services.nix
 
             hermes-agent.nixosModules.default
             ./system/hermes/hermes.nix

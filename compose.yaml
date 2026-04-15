@@ -1,5 +1,0 @@
-name: services
-
-include:
-  - ./docker/calendar/compose.yaml
-  - ./docker/honcho/compose.yaml

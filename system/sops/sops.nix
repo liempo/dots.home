@@ -17,6 +17,12 @@
         group = "hermes";
         mode = "0440";
       };
+
+      "calendar-env" = {
+        owner = "liempo";
+        group = "users";
+        mode = "0440";
+      };
     };
   };
 }

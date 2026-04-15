@@ -63,7 +63,7 @@ ICS sync (`sync_type: "ics"`) additionally requires:
 - **`sync_type`: `"ics"`**
 - **`external_ics_url`**: the URL to download the `.ics` feed from
 
-## Google OAuth setup (for `sync-astra`)
+## Google OAuth setup 
 
 ### 1) Create OAuth client in Google Cloud
 
@@ -103,10 +103,7 @@ After that, the sync loop will refresh tokens automatically (when a refresh toke
 
 ### From `~/.dots/services` (recommended)
 
-Your root compose file (`services/compose.yaml`) includes this module. All calendar services are in a single profile named **`calendar`**.
-
 ```bash
-cd ~/.dots/services
 docker compose up -d 
 docker compose restart
 ```

@@ -85,8 +85,14 @@ in
         return = "301 https://$host/calendar/";
       };
 
-      locations."/" = {
-        return = "301 https://$host$request_uri";
+      # Hermes dashboard (docker/hermes: dashboard listens on 9119)
+      locations."/hermes/" = {
+        proxyPass = "http://127.0.0.1:9119/";
+        extraConfig = ''
+          proxy_set_header Upgrade $http_upgrade;
+          proxy_set_header Connection $connection_upgrade;
+          proxy_read_timeout 300s;
+        '';
       };
     };
   };

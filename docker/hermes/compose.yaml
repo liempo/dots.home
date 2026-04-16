@@ -1,3 +1,5 @@
+# Caveats: ~/.hermes is only editable by hermes or root (not liempo) on this host.
+# Do not set HERMES_UID / HERMES_GID here — dashboard breaks (unable to build).
 name: hermes
 
 services:
@@ -20,7 +22,7 @@ services:
     image: nousresearch/hermes-agent:latest
     container_name: hermes-dashboard
     restart: unless-stopped
-    command: dashboard --host 0.0.0.0
+    command: dashboard --host 0.0.0.0 --insecure
     ports:
       - "9119:9119"
     volumes:

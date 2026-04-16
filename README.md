@@ -118,6 +118,11 @@ Stack-specific ignore rules live under `docker/*/.gitignore` where needed.
 
 Hermes runs as **`hermes.service`** with **`docker/hermes/compose.yaml`**: **gateway** (`gateway run`) and **dashboard** services sharing **`~/.hermes`** for agent data. This replaces a separate NixOS **`services.hermes-agent`** module in older layouts; configuration follows the upstream image defaults plus data under **`~/.hermes`**.
 
+**Caveats:**
+
+- **`~/.hermes`** on the host is not writable by **`liempo`**; only the **`hermes`** user or **root** can change files there (match ownership to how the unit runs or use **`sudo`** when editing).
+- Do **not** set **`HERMES_UID`** and **`HERMES_GID`** in **`docker/hermes/compose.yaml`**. Doing so breaks the **dashboard** (it fails to build / start).
+
 ## Data and trust boundaries
 
 - **On disk in git**: Nix modules under `system/` and `home/`, `docker/**` Compose definitions and non-secret templates, submodule source trees as tracked.

@@ -3,8 +3,8 @@
 This module runs a local **CalDAV** server (Radicale) plus background sync jobs that upload iCalendar data into Radicale collections:
 
 - **`radicale`**: CalDAV server (stores calendars and serves clients)
-- **`sync-astra`**: Google Calendar → iCalendar → Radicale (OAuth)
-- **`sync-tonic` / `sync-personal`**: ICS URL → Radicale (no OAuth)
+- **`sync-astra`**: Google Calendar → iCalendar → Radicale (OAuth); build context **`./sync-google`**
+- **`sync-tonic` / `sync-personal`**: ICS URL → Radicale (no OAuth); shared **`./sync-ics`** script
 
 All services are defined in `compose.yaml`.
 
@@ -18,11 +18,7 @@ All services are defined in `compose.yaml`.
 
 ### 1) Environment file
 
-Copy and edit `.env`:
-
-```bash
-cp .env.example .env
-```
+Create **`docker/calendar/.env`** in this directory (gitignored at repo root). Docker Compose loads it automatically for variable substitution.
 
 Required keys:
 
@@ -36,13 +32,13 @@ The `radicale` container uses the files in `./radicale/etc` and stores data in `
 
 Make sure Radicale’s users file matches your `.env` credentials:
 
-- `./radicale/etc/users` (format depends on the Radicale image; keep it consistent with your existing setup)
+- `./radicale/etc/users` (format depends on the Radicale image; see `users.example` if present)
 
 ### 3) Per-calendar sync config (what gets synced where)
 
 Each sync job reads a JSON config from **`/data/calendar.json`** inside its container.
 
-Because the compose file mounts `./data/<sync-name>:/data`, you should place a config at:
+Because the compose file mounts `./data/<sync-name>:/data`, place a config at:
 
 - **Google**: `./data/sync-astra/calendar.json`
 - **ICS**: `./data/sync-tonic/calendar.json`, `./data/sync-personal/calendar.json`
@@ -90,6 +86,7 @@ Add these redirect URIs to the OAuth client:
 Run the auth command with the callback port published:
 
 ```bash
+cd ~/.dots/docker/calendar
 docker compose run --rm -p 8090:8090 sync-astra python sync.py auth
 ```
 
@@ -101,19 +98,29 @@ After that, the sync loop will refresh tokens automatically (when a refresh toke
 
 ## Running the stack
 
-### From `~/.dots/services` (recommended)
+### On homestation (systemd)
+
+**`calendar.service`** runs Compose from **`~/.dots/docker/calendar`** (see `system/services.nix`).
+
+- Logs: `journalctl -u calendar -f`
+- Restart: `sudo systemctl restart calendar`
+
+### Manually
 
 ```bash
-docker compose up -d 
-docker compose restart
+cd ~/.dots/docker/calendar
+docker compose up
 ```
+
+Use **`docker compose up -d`** if you want detached containers without systemd.
 
 ## HTTPS / reverse proxy
 
-This module is set up to be used behind an nginx reverse proxy that terminates TLS and forwards `/calendar/` → `radicale:5232`.
-See the comment block at the top of `compose.yaml` (and any nginx files you already have in your dotfiles) for the intended URL shape:
+This module is set up to be used behind an nginx reverse proxy that terminates TLS and forwards `/calendar/` → Radicale on **`127.0.0.1:5232`**.
 
-- `https://<host>/calendar/`
+- Public URL shape: `https://<host>/calendar/`
+
+Nginx configuration lives in **`system/networking.nix`** on the homestation host.
 
 ## Troubleshooting
 

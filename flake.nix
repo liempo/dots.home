@@ -7,19 +7,12 @@
       url = "github:nix-community/home-manager/release-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    sops-nix = {
-      url = "github:Mic92/sops-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    hermes-agent.url = "github:NousResearch/hermes-agent";
   };
 
   outputs = { 
     self,
     nixpkgs,
     home-manager,
-    sops-nix,
-    hermes-agent,
     ...
    }:
     {
@@ -30,13 +23,7 @@
             ./system/hardware.nix
             ./system/configuration.nix
             ./system/networking.nix
-
-            sops-nix.nixosModules.sops
-            ./system/sops/sops.nix
             ./system/services.nix
-
-            hermes-agent.nixosModules.default
-            ./system/hermes/hermes.nix
 
             home-manager.nixosModules.home-manager
             {

@@ -7,7 +7,6 @@ data/
 # - Ignore runtime storage (radicale/var) and real credential material (users)
 radicale/var/
 radicale/etc/users
-radicale/**
 !/radicale/etc/default.conf
 !/radicale/etc/rights
 !/radicale/etc/users.example

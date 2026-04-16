@@ -40,7 +40,7 @@
   users.users.liempo = {
     isNormalUser = true;
     description = "Liempo";
-    extraGroups = [ "wheel" "networkmanager" "docker" "hermes" ];
+    extraGroups = [ "wheel" "networkmanager" "docker" ];
     packages = with pkgs; [
       tmux zoxide neovim btop
       # For cursor ssh

@@ -86,7 +86,7 @@ in
       };
 
       # Hermes dashboard (docker/hermes: dashboard listens on 9119)
-      locations."/hermes/" = {
+      locations."/" = {
         proxyPass = "http://127.0.0.1:9119/";
         extraConfig = ''
           proxy_set_header Upgrade $http_upgrade;

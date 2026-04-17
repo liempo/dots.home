@@ -2,12 +2,18 @@
 # Do not set HERMES_UID / HERMES_GID here — dashboard breaks (unable to build).
 name: hermes
 
+include:
+  - honcho/compose.yaml
+
 services:
   hermes:
     image: nousresearch/hermes-agent:latest
     container_name: hermes
     restart: unless-stopped
     command: gateway run
+    depends_on:
+      honcho_api:
+        condition: service_started
     ports:
       - "8642:8642"
     volumes:

@@ -1,10 +1,5 @@
 eval "$(zoxide init zsh)"
 
-## Aliases
-alias update="sudo nixos-rebuild switch --flake \"$HOME/.dots#homestation\""
-
-## Functions
-
 # Run 'ls' every 'cd'
 function chpwd() {
     emulate -L zsh

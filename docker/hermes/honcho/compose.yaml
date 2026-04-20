@@ -13,7 +13,7 @@ services:
       honcho_redis:
         condition: service_healthy
     ports:
-      - "0.0.0.0:8000:8000"
+      - "127.0.0.1:8000:8000"
 
     environment:
       - DB_CONNECTION_URI=postgresql+psycopg://postgres:postgres@honcho_database:5432/postgres

@@ -23,7 +23,6 @@ services:
     volumes:
       - ./radicale/etc:/radicale/etc
       - ./radicale/var:/radicale/var
-    # Local debug only; prefer https://<host>/calendar/ via nginx (ports 80/443).
     ports:
       - "127.0.0.1:5232:5232"
     restart: unless-stopped

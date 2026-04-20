@@ -23,6 +23,25 @@ in
       TimeoutStopSec = "120";
     };
   };
+
+  systemd.services.stremio = {
+    description = "Stremio streaming server (Docker Compose)";
+    after = [ "network-online.target" "docker.service" ];
+    wants = [ "network-online.target" ];
+    requires = [ "docker.service" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "simple";
+      Restart = "on-failure";
+      RestartSec = "5";
+      User = "liempo";
+      WorkingDirectory = "${dotsDir}/docker/stremio";
+      ExecStart = "${compose} -f compose.yaml up --remove-orphans";
+      ExecStop = "${compose} -f compose.yaml down";
+      TimeoutStopSec = "120";
+    };
+  };
+
   systemd.services.hermes = {
     description = "Hermes agent stack (Docker Compose)";
     after = [ "network-online.target" "docker.service" ];

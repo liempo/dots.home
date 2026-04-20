@@ -63,10 +63,7 @@
 # ── Services ────────────────────────────────────────────────────────────
 
   # OpenSSH daemon
-  services.openssh = {
-    enable = true;
-    settings.PasswordAuthentication = true;
-  };
+  services.openssh.enable = true;
 
   # Virtualization with Docker
   virtualisation.docker.enable = true;

@@ -114,16 +114,25 @@ docker compose up
 
 Use **`docker compose up -d`** if you want detached containers without systemd.
 
-## HTTPS / reverse proxy
+## HTTPS / Tailscale Serve
 
-This module is set up to be used behind an nginx reverse proxy that terminates TLS and forwards `/calendar/` → Radicale on **`127.0.0.1:5232`**.
+Compose binds Radicale to **`127.0.0.1:5232`** only. This repo **does not** run **`tailscale serve`** from systemd; expose CalDAV to your tailnet yourself (e.g. [Tailscale Serve](https://tailscale.com/docs/reference/tailscale-cli/serve)) after Radicale is up.
 
-- Public URL shape: `https://<host>/calendar/`
+Example (run on the host as root; define **`svc:calendar`** and **`tcp:8443`** in the [admin Services](https://login.tailscale.com/admin/services) UI if you use [Tailscale Services](https://tailscale.com/docs/features/tailscale-services)):
 
-Nginx configuration lives in **`system/networking.nix`** on the homestation host.
+```bash
+sudo tailscale serve --service=svc:calendar --bg --https=8443 http://127.0.0.1:5232
+```
+
+Configure CalDAV clients with that HTTPS origin (no `/calendar/` path prefix when using Serve on a dedicated port).
+
+**Web UI:** if you use Serve on **8443**, open **`https://<tailscale-host-or-service>:8443/`** (Radicale redirects to **`/.web/`**). Log in with **`RADICALE_USER`** / **`RADICALE_PASSWORD`** from `.env` (same as **`./radicale/etc/users`**). Locally: **`http://127.0.0.1:5232/`**.
+
+**NixOS firewall:** allow the TCP ports you pass to **`tailscale serve`** (e.g. **8443**), or Serve cannot accept connections.
 
 ## Troubleshooting
 
+- **Web portal blank or “Radicale works!” only:** ensure **`docker/calendar/radicale/etc/default.conf`** has **`[web] type = internal`** and **`[auth] type = htpasswd`** (not **`none`**) when using **`./radicale/etc/users`**. Restart: **`sudo systemctl restart calendar`**.
 - **OAuth redirect URI mismatch**: ensure `http://127.0.0.1:8090/` and/or `http://localhost:8090/` are added in Google Cloud.
 - **Auth can’t be reached from browser**: confirm you used `-p 8090:8090` on the `auth` run.
 - **Sync says “no token file”**: run the one-time `auth` command and ensure `./data/sync-astra/token.json` exists.

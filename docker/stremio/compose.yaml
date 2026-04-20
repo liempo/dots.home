@@ -1,0 +1,11 @@
+name: stremio
+
+services:
+  stremio:
+    image: stremio/server:latest
+    container_name: stremio
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:11470:11470"
+    environment:
+      - NO_CORS=1

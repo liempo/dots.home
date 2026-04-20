@@ -1,0 +1,20 @@
+{
+  "version": "0.0.1",
+  "services": {
+    "svc:calendar": {
+      "endpoints": {
+        "tcp:443": "http://127.0.0.1:5232"
+      }
+    },
+    "svc:delamain": {
+      "endpoints": {
+        "tcp:443": "http://127.0.0.1:9119"
+      }
+    },
+    "svc:stremio": {
+      "endpoints": {
+        "tcp:443": "http://127.0.0.1:11470"
+      }
+    }
+  }
+}

@@ -12,3 +12,4 @@ permissions: RW
 user: .+
 collection: {user}/[^/]+
 permissions: rw
+

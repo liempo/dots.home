@@ -3,8 +3,8 @@
 This module runs a local **CalDAV** server (Radicale) plus background sync jobs that upload iCalendar data into Radicale collections:
 
 - **`radicale`**: CalDAV server (stores calendars and serves clients)
-- **`sync-astra`**: Google Calendar → iCalendar → Radicale (OAuth); build context **`./sync-google`**
-- **`sync-tonic` / `sync-personal`**: ICS URL → Radicale (no OAuth); shared **`./sync-ics`** script
+- **`sync-astra`**: sync job (Google or ICS depending on `sync_type`)
+- **`sync-tonic` / `sync-personal`**: sync jobs (Google or ICS depending on `sync_type`)
 
 All services are defined in `compose.yaml`.
 
@@ -20,6 +20,10 @@ All services are defined in `compose.yaml`.
 
 Create **`docker/calendar/.env`** in this directory (gitignored at repo root). Docker Compose loads it automatically for variable substitution.
 
+Template:
+
+- `docker/calendar/.env.example` → copy to `docker/calendar/.env` and fill in real values.
+
 Required keys:
 
 - **`RADICALE_USER`** / **`RADICALE_PASSWORD`**: used by sync jobs to PUT calendars into Radicale.
@@ -28,20 +32,42 @@ Required keys:
 
 ### 2) Radicale users
 
-The `radicale` container uses the files in `./radicale/etc` and stores data in `./radicale/var`.
+The `radicale` container uses the files in `~/.calendar/radicale/etc` and stores data in `~/.calendar/radicale/var`.
 
 Make sure Radicale’s users file matches your `.env` credentials:
 
-- `./radicale/etc/users` (format depends on the Radicale image; see `users.example` if present)
+- `~/.calendar/radicale/etc/users` (format depends on the Radicale image; see `users.example` if present)
+
+Templates you can copy from this repo:
+
+- `docker/calendar/example_config/radicale/etc/default.conf` → `~/.calendar/radicale/etc/default.conf`
+- `docker/calendar/example_config/radicale/etc/rights` → `~/.calendar/radicale/etc/rights`
+- `docker/calendar/example_config/radicale/etc/users.example` → reference for creating `~/.calendar/radicale/etc/users`
 
 ### 3) Per-calendar sync config (what gets synced where)
 
 Each sync job reads a JSON config from **`/data/calendar.json`** inside its container.
 
-Because the compose file mounts `./data/<sync-name>:/data`, place a config at:
+Because the compose file mounts `~/.calendar/data/<sync-name>:/data`, place a config at:
 
-- **Google**: `./data/sync-astra/calendar.json`
-- **ICS**: `./data/sync-tonic/calendar.json`, `./data/sync-personal/calendar.json`
+- **`sync-astra`**: `~/.calendar/data/sync-astra/calendar.json`
+- **`sync-tonic`**: `~/.calendar/data/sync-tonic/calendar.json`
+- **`sync-personal`**: `~/.calendar/data/sync-personal/calendar.json`
+
+Templates you can copy from this repo:
+
+- `docker/calendar/example_config/data/sync-astra/calendar.json`
+- `docker/calendar/example_config/data/sync-tonic/calendar.json`
+- `docker/calendar/example_config/data/sync-personal/calendar.json`
+
+Example seed commands (copies templates into `~/.calendar`):
+
+```bash
+mkdir -p ~/.calendar/data/sync-astra ~/.calendar/data/sync-tonic ~/.calendar/data/sync-personal
+cp -n ~/.dots/docker/calendar/example_config/data/sync-astra/calendar.json ~/.calendar/data/sync-astra/calendar.json
+cp -n ~/.dots/docker/calendar/example_config/data/sync-tonic/calendar.json ~/.calendar/data/sync-tonic/calendar.json
+cp -n ~/.dots/docker/calendar/example_config/data/sync-personal/calendar.json ~/.calendar/data/sync-personal/calendar.json
+```
 
 Common fields (all sync types):
 
@@ -70,9 +96,9 @@ In Google Cloud Console:
 
 Download the client JSON and save it to:
 
-- `./credentials/google-oauth-client.json`
+- `~/.calendar/credentials/google-oauth-client.json`
 
-There is an example template at `credentials/google-oauth-client.json.example`.
+There is an example template at `docker/calendar/credentials/google-oauth-client.json.example`.
 
 ### 2) Add redirect URIs
 
@@ -92,7 +118,7 @@ docker compose run --rm -p 8090:8090 sync-astra python sync.py auth
 
 Then open the URL printed in your terminal, complete consent, and the token will be saved to the mounted data directory:
 
-- `./data/sync-astra/token.json`
+- `~/.calendar/data/sync-astra/token.json`
 
 After that, the sync loop will refresh tokens automatically (when a refresh token exists).
 
@@ -126,13 +152,13 @@ sudo tailscale serve --service=svc:calendar --bg --https=8443 http://127.0.0.1:5
 
 Configure CalDAV clients with that HTTPS origin (no `/calendar/` path prefix when using Serve on a dedicated port).
 
-**Web UI:** if you use Serve on **8443**, open **`https://<tailscale-host-or-service>:8443/`** (Radicale redirects to **`/.web/`**). Log in with **`RADICALE_USER`** / **`RADICALE_PASSWORD`** from `.env` (same as **`./radicale/etc/users`**). Locally: **`http://127.0.0.1:5232/`**.
+**Web UI:** if you use Serve on **8443**, open **`https://<tailscale-host-or-service>:8443/`** (Radicale redirects to **`/.web/`**). Log in with **`RADICALE_USER`** / **`RADICALE_PASSWORD`** from `.env` (same as **`~/.calendar/radicale/etc/users`**). Locally: **`http://127.0.0.1:5232/`**.
 
 **NixOS firewall:** allow the TCP ports you pass to **`tailscale serve`** (e.g. **8443**), or Serve cannot accept connections.
 
 ## Troubleshooting
 
-- **Web portal blank or “Radicale works!” only:** ensure **`docker/calendar/radicale/etc/default.conf`** has **`[web] type = internal`** and **`[auth] type = htpasswd`** (not **`none`**) when using **`./radicale/etc/users`**. Restart: **`sudo systemctl restart calendar`**.
+- **Web portal blank or “Radicale works!” only:** ensure **`~/.calendar/radicale/etc/default.conf`** has **`[web] type = internal`** and **`[auth] type = htpasswd`** (not **`none`**) when using **`~/.calendar/radicale/etc/users`**. Templates live in `docker/calendar/radicale/etc/`. Restart: **`sudo systemctl restart calendar`**.
 - **OAuth redirect URI mismatch**: ensure `http://127.0.0.1:8090/` and/or `http://localhost:8090/` are added in Google Cloud.
 - **Auth can’t be reached from browser**: confirm you used `-p 8090:8090` on the `auth` run.
-- **Sync says “no token file”**: run the one-time `auth` command and ensure `./data/sync-astra/token.json` exists.
+- **Sync says “no token file”**: run the one-time `auth` command and ensure `~/.calendar/data/sync-astra/token.json` exists.

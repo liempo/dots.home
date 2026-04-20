@@ -1,16 +1,18 @@
 name: calendar
 
-x-ics-sync: &ics-sync
-  build: ./sync-ics
+x-sync-env: &sync-env
+  SYNC_INTERVAL_SECONDS: ${SYNC_INTERVAL_SECONDS:-1800}
+  RADICALE_USER: ${RADICALE_USER:-}
+  RADICALE_PASSWORD: ${RADICALE_PASSWORD:-}
+  RADICALE_BASE_URL: ${RADICALE_BASE_URL:-http://radicale:5232}
+
+x-calendar-sync: &calendar-sync
+  build: ./sync
   depends_on:
     - radicale
   restart: unless-stopped
   environment:
-    SYNC_INTERVAL_SECONDS: ${SYNC_INTERVAL_SECONDS:-1800}
-    RADICALE_USER: ${RADICALE_USER:-}
-    RADICALE_PASSWORD: ${RADICALE_PASSWORD:-}
-    RADICALE_BASE_URL: ${RADICALE_BASE_URL:-http://radicale:5232}
-  command: ["/bin/sh", "/sync.sh"]
+    <<: *sync-env
 
 services:
 
@@ -21,38 +23,46 @@ services:
     security_opt:
       - "no-new-privileges=true"
     volumes:
-      - ./radicale/etc:/radicale/etc
-      - ./radicale/var:/radicale/var
+      - ~/.calendar/radicale/etc:/radicale/etc
+      - ~/.calendar/radicale/var:/radicale/var
     ports:
       - "127.0.0.1:5232:5232"
     restart: unless-stopped
 
-  sync-astra:
-    container_name: sync-astra
-    build: ./sync-google
-    depends_on:
-      - radicale
-    restart: unless-stopped
-    environment:
-      SYNC_INTERVAL_SECONDS: ${SYNC_INTERVAL_SECONDS:-1800}
-      OAUTH_PORT: "8090"
-      RADICALE_USER: ${RADICALE_USER:-}
-      RADICALE_PASSWORD: ${RADICALE_PASSWORD:-}
-      RADICALE_BASE_URL: ${RADICALE_BASE_URL:-http://radicale:5232}
-    volumes:
-      - ./data/sync-astra:/data
-      - ./credentials/google-oauth-client.json:/credentials/google-oauth-client.json:ro
-
-  sync-tonic:
-    <<: *ics-sync
-    container_name: sync-tonic
-    volumes:
-      - ./sync-ics/sync.sh:/sync.sh:ro
-      - ./data/sync-tonic:/data
+#  sync-personal:
+#     <<: *ics-sync
+#     container_name: sync-personal
+#     volumes:
+#       - ./sync-ics/sync.sh:/sync.sh:ro
+#       - ~/.calendar/data/sync-personal:/data
 
   sync-personal:
-    <<: *ics-sync
+    <<: *calendar-sync
     container_name: sync-personal
+    environment:
+      <<: *sync-env
+      OAUTH_PORT: "8090"
+      GOOGLE_CREDENTIALS_PATH: "/credentials/google-oauth-client.json"
+      GOOGLE_TOKEN_PATH: "/data/token.json"
     volumes:
-      - ./sync-ics/sync.sh:/sync.sh:ro
-      - ./data/sync-personal:/data
+      - ~/.calendar/data/personal:/data
+      - ~/.calendar/credentials:/credentials:ro
+
+  sync-astra:
+    <<: *calendar-sync
+    container_name: sync-astra
+    environment:
+      <<: *sync-env
+      OAUTH_PORT: "8090"
+      GOOGLE_CREDENTIALS_PATH: "/credentials/google-oauth-client.json"
+      GOOGLE_TOKEN_PATH: "/data/token.json"
+    volumes:
+      - ~/.calendar/data/astra:/data
+      - ~/.calendar/credentials:/credentials:ro
+
+  sync-tonic:
+    <<: *calendar-sync
+    container_name: sync-tonic
+    volumes:
+      - ~/.calendar/data/tonic:/data
+

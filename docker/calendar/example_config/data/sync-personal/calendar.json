@@ -1,0 +1,7 @@
+{
+  "sync_type": "ics",
+  "id": "personal",
+  "name": "Personal",
+  "external_ics_url": "https://example.com/calendar.ics"
+}
+

@@ -7,6 +7,9 @@ services:
       context: ./src
       dockerfile: Dockerfile
     entrypoint: ["sh", "docker/entrypoint.sh"]
+    networks:
+      - default
+      - mcp-net
     depends_on:
       honcho_database:
         condition: service_healthy
@@ -82,3 +85,8 @@ services:
 volumes:
   honcho_pgdata:
   honcho_redis_data:
+
+networks:
+  mcp-net:
+    name: mcp-net
+    driver: bridge

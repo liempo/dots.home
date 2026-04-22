@@ -173,9 +173,9 @@ Services (from `docker/calendar/compose.yaml`):
   - Build context: `docker/calendar/sync`
   - Input config: `/data/calendar.json` (mounted from `~/.calendar/data/<name>/calendar.json`)
   - Behavior: periodically generate/fetch ICS and upload into Radicale via HTTP `PUT`
-- **`radicale-mcp`**
-  - Exposes an MCP server over HTTP (published as `8799:8000`)
-  - Connects to Radicale internally via `http://radicale:5232`
+- **`chronos-mcp`**
+  - Runs [Chronos MCP](https://github.com/democratize-technology/chronos-mcp) (FastMCP) with **SSE** transport (published as `8799:8000`; MCP clients use `http://<host>:8799/sse`, FastMCP defaults)
+  - Injects `CALDAV_*` from `RADICALE_*` in `docker/calendar/.env`; mounts `~/.calendar/chronos/accounts.json` → `/root/.chronos/accounts.json` for optional [multi-account](https://github.com/democratize-technology/chronos-mcp#configuration) entries (empty `accounts` keeps the default account env-only)
 
 ```mermaid
 flowchart LR
@@ -191,7 +191,7 @@ flowchart LR
   sync_astra --> radicale
   sync_tonic --> radicale
 
-  mcp["radicale-mcp\n:8799 (host)"] --> radicale
+  mcp["chronos-mcp\n:8799 (host)"] --> radicale
 ```
 
 Operational details and setup steps live in `docker/calendar/README.md`.

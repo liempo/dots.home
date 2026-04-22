@@ -21,7 +21,7 @@ This folder runs a local CalDAV server (**Radicale**) and one-or-more **sync** c
 ## 1) Create host folders
 
 ```bash
-mkdir -p ~/.calendar/{radicale/{etc,var},data/{personal,astra,tonic},credentials}
+mkdir -p ~/.calendar/{radicale/{etc,var},data/{personal,astra,tonic},credentials,chronos}
 ```
 
 ## 2) Copy the example config into `~/.calendar`
@@ -48,6 +48,18 @@ Copy the calendar JSON you want, per service:
 - `docker/calendar/example_config/data/sync-tonic/calendar.json` → `~/.calendar/data/tonic/calendar.json`
 
 Then edit each `~/.calendar/data/*/calendar.json` to match your calendars (details below).
+
+### Chronos MCP (`accounts.json`)
+
+JSON cannot “read” `.env`; values in a static file are fixed unless you generate the file (for example with `envsubst`). This stack avoids duplicating Radicale credentials in JSON:
+
+- Compose passes **`RADICALE_USER`** / **`RADICALE_PASSWORD`** from `docker/calendar/.env` into the container as **`CALDAV_USERNAME`** / **`CALDAV_PASSWORD`** (and **`CALDAV_BASE_URL=http://radicale:5232`**). Chronos creates the **`default`** CalDAV account from those variables whenever **`default` is not already listed** in `accounts.json`.
+
+- **`~/.calendar/chronos/accounts.json`** is mounted at `/root/.chronos/accounts.json`. Copy the example (empty `accounts`) so the default account comes only from `.env`:
+
+  - `docker/calendar/example_config/chronos/accounts.json` → `~/.calendar/chronos/accounts.json`
+
+To use **extra** CalDAV accounts (same or other servers), add entries under `accounts` and set `default_account` if needed; see [Chronos MCP configuration](https://github.com/democratize-technology/chronos-mcp#configuration). If you define an account with alias **`default`** in JSON, that entry wins and env-based `default` is not added.
 
 ## 3) Configure environment variables (`docker/calendar/.env`)
 
@@ -214,7 +226,20 @@ docker compose logs -f sync-personal
 docker compose logs -f sync-astra
 ```
 
-## 9) Connect your calendar client (CalDAV)
+## 9) Calendar MCP (Cursor / other MCP clients)
+
+The **`chronos-mcp`** service runs **[Chronos MCP](https://github.com/democratize-technology/chronos-mcp)**. Radicale credentials for the default account come from **`docker/calendar/.env`** via compose (`CALDAV_*`, see §2). **`~/.calendar/chronos/accounts.json`** is optional scaffolding for extra accounts (or leave `accounts` empty).
+
+- **Transport**: FastMCP **SSE** on container port `8000`, published on the host as **`127.0.0.1:8799`**.
+- **Local MCP URL**: `http://127.0.0.1:8799/sse` (SSE path; message POSTs use `/messages/` on the same port per FastMCP defaults).
+
+Logs:
+
+```bash
+docker compose logs -f chronos-mcp
+```
+
+## 10) Connect your calendar client (CalDAV)
 
 Radicale endpoint (from the host):
 
@@ -234,7 +259,7 @@ Tip:
 
 - Some clients want only the base URL and will discover collections automatically.
 
-## 10) Adding another calendar
+## 11) Adding another calendar
 
 1) Create a new host folder: `~/.calendar/data/<new>/`
 2) Create `~/.calendar/data/<new>/calendar.json` (copy an example and edit).

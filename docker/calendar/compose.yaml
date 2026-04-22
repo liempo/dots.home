@@ -11,6 +11,9 @@ x-calendar-sync: &calendar-sync
   depends_on:
     - radicale
   restart: unless-stopped
+  networks:
+    - default
+    - mcp-net
   environment:
     <<: *sync-env
 
@@ -29,27 +32,30 @@ services:
       - "127.0.0.1:5232:5232"
     restart: unless-stopped
 
-  radicale-mcp:
-    container_name: radicale-mcp
+  chronos-mcp:
+    container_name: chronos-mcp
     image: python:3.12-slim
     depends_on:
       - radicale
     restart: unless-stopped
     environment:
-      CALDAV_SERVER_URL: "http://radicale:5232"
-      CALDAV_USERNAME: ${RADICALE_USER:-}
-      CALDAV_PASSWORD: ${RADICALE_PASSWORD:-}
-      CALDAV_USE_SSL: "false"
-      LOG_LEVEL: "INFO"
-    command: >
-      sh -lc
-      "apt-get update
-      && apt-get install -y --no-install-recommends git
-      && rm -rf /var/lib/apt/lists/*
-      && pip install --no-cache-dir git+https://github.com/TheGreatGooo/radicale-mcp.git
-      && python -c 'from server import mcp; mcp.run(transport=\"http\", host=\"0.0.0.0\", port=8000)'"
+      FASTMCP_CHECK_FOR_UPDATES: "off"
+    volumes:
+      - ~/.calendar/chronos/accounts.json:/root/.chronos/accounts.json
+    command:
+      - sh
+      - -c
+      - >-
+        apt-get update &&
+        apt-get install -y --no-install-recommends git &&
+        rm -rf /var/lib/apt/lists/* &&
+        pip install --no-cache-dir 'git+https://github.com/democratize-technology/chronos-mcp.git' &&
+        exec python -c 'from chronos_mcp.server import mcp; mcp.run(transport="sse", host="0.0.0.0", port=8000)'
     ports:
       - "8799:8000"
+    networks:
+      - default
+      - mcp-net
 
   sync-personal:
     <<: *calendar-sync
@@ -75,3 +81,7 @@ services:
     volumes:
       - ~/.calendar/data/tonic:/data
 
+networks:
+  mcp-net:
+    name: mcp-net
+    driver: bridge

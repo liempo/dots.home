@@ -18,6 +18,9 @@ services:
       - "8642:8642"
     volumes:
       - ~/.hermes:/opt/data
+    networks:
+      - default
+      - mcp-net
     deploy:
       resources:
         limits:
@@ -42,3 +45,8 @@ services:
         limits:
           memory: 512M
           cpus: "0.5"
+
+networks:
+  mcp-net:
+    name: mcp-net
+    driver: bridge

@@ -1,0 +1,23 @@
+{
+  "accounts": {
+    "personal": {
+      "url": "http://radicale:5232/liempo/personal",
+      "username": "liempo",
+      "display_name": "Personal",
+      "password": "${RADICALE_PASSWORD}"
+    },
+    "astra": {
+      "url": "http://radicale:5232/liempo/astra",
+      "username": "user",
+      "display_name": "Astra",
+      "password": "${RADICALE_PASSWORD}"
+    },
+    "tonic": {
+      "url": "http://radicale:5232/liempo/tonic",
+      "username": "user",
+      "display_name": "Tonic",
+      "password": "${RADICALE_PASSWORD}"
+    }
+  },
+  "default_account": "personal"
+}

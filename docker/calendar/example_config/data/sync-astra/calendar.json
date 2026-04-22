@@ -2,6 +2,7 @@
   "sync_type": "google",
   "id": "astra",
   "name": "Astra",
-  "google_calendar_id": "primary"
+  "google_calendar_id": "primary",
+  "merge_preserve_local": false
 }
 

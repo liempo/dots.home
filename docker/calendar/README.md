@@ -124,6 +124,36 @@ Common fields:
 - `id`: used as the default Radicale collection name (and default URL path component)
 - `name`: calendar display name (written as `X-WR-CALNAME` in the ICS)
 - `href` (optional): overrides the Radicale collection path (defaults to `id`)
+- `merge_preserve_local` (optional, default `false`): when `true`, the sync job **GET**s the existing Radicale calendar, **merges** upstream `VEVENT`s with **local-only** data (`VTODO`, `VJOURNAL`, and `VEVENT`s that are not owned by that upstream), then **PUT**s the combined calendar. When `false`, behavior is unchanged: each cycle **replaces** the whole collection from upstream only.
+
+#### Merge ownership rules
+
+**Google (`sync_type: google`)**
+
+- Upstream `VEVENT`s use `UID` values of the form `{googleEventId}@google.com` (same as the sync script has always written).
+- On each run, every `VEVENT` returned by Google for that cycle is written from Google; any local `VEVENT` with the same `UID` is replaced by that copy.
+- Any local `VEVENT` whose `UID` ends with `@google.com` but is **not** in the current Google response is **removed** (mirrors deletion in Google).
+- Local `VEVENT`s whose `UID` does **not** use that suffix are treated as **local-only** and are kept.
+- **`VTODO` / `VJOURNAL`** from Radicale are always kept.
+- Do not create manual `VEVENT`s with fake `...@google.com` UIDs, or they may be deleted when they do not exist in Google.
+
+**ICS (`sync_type: ics`)**
+
+- Every `VEVENT` taken from the downloaded feed is written with a custom property **`X-CALENDAR-SYNC-SOURCE: ics-feed`** so the next run can tell feed-originated events from user-created ones.
+- If a local `VEVENT` has the same `UID` as an event in the current feed, the **feed** copy wins.
+- If a local `VEVENT` has `X-CALENDAR-SYNC-SOURCE: ics-feed` and its `UID` is **no longer** in the feed, that event is **removed** (mirrors removal from the subscription).
+- Local `VEVENT`s **without** that property are treated as **local-only** and are kept (unless their `UID` collides with a feed event, in which case the feed wins).
+- **`VTODO` / `VJOURNAL`** are always kept.
+- **Legacy calendars:** collections that were filled **before** merge was enabled may not have `X-CALENDAR-SYNC-SOURCE` on old feed events, so events removed from the feed might **not** disappear until you do **one** full replace: set `merge_preserve_local` to `false` for a single run (or clear the collection), then set it back to `true`.
+
+**ICS malformed feed**
+
+- If `merge_preserve_local` is `true` and the downloaded feed cannot be parsed as a single `VCALENDAR`, that cycle **logs an error and does not PUT** to Radicale (the previous data is left as-is).
+
+#### Manual checks (merge enabled)
+
+1. **Google:** Add a `VTODO` on Radicale with a CalDAV client; wait for sync; confirm the todo remains. Change an event in Google; confirm it updates on Radicale. Delete an event in Google; confirm the matching `...@google.com` event disappears.
+2. **ICS:** Add a `VTODO` locally; wait for sync; confirm it remains. Change the feed (or wait for provider updates); confirm feed events update. After at least one merged run so feed events carry `X-CALENDAR-SYNC-SOURCE`, remove an event from the upstream feed; confirm it disappears on Radicale on the next sync.
 
 ### A) ICS sync (external `.ics` URL → Radicale)
 

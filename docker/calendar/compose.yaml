@@ -9,7 +9,8 @@ x-sync-env: &sync-env
 x-calendar-sync: &calendar-sync
   build: ./sync
   depends_on:
-    - radicale
+    radicale:
+      condition: service_healthy
   restart: unless-stopped
   networks:
     - default
@@ -31,12 +32,25 @@ services:
     ports:
       - "127.0.0.1:5232:5232"
     restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import socket; s=socket.socket(); s.settimeout(3); s.connect(('127.0.0.1',5232)); s.close()",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
 
   chronos-mcp:
     container_name: chronos-mcp
     image: python:3.12-slim
     depends_on:
-      - radicale
+      radicale:
+        condition: service_healthy
     restart: unless-stopped
     environment:
       FASTMCP_CHECK_FOR_UPDATES: "off"

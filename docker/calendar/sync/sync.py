@@ -8,6 +8,10 @@ Supported sync types:
 - "google": Google Calendar -> ICS -> Radicale PUT (OAuth)
 - "ics":    External ICS URL -> (optional X-WR-CALNAME) -> Radicale PUT
 
+Optional merge_preserve_local (bool, default false):
+- When true, GET the existing Radicale collection and merge upstream VEVENTs with
+  local VTODO/VJOURNAL and local-only VEVENTs before PUT.
+
 First-time Google auth:
   docker compose run --rm -p 8090:8090 <service> python sync.py auth
 """
@@ -33,6 +37,11 @@ from icalendar import Calendar as ICalCalendar
 from icalendar import Event as ICalEvent
 
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
+
+# Mark VEVENTs that originated from an ICS subscription (merge + deletion detection).
+ICS_FEED_SYNC_PROP = "X-CALENDAR-SYNC-SOURCE"
+ICS_FEED_SYNC_VALUE = "ics-feed"
+GOOGLE_UID_SUFFIX = "@google.com"
 
 
 def _die(msg: str) -> None:
@@ -80,6 +89,10 @@ def display_name(cfg: dict[str, Any]) -> str:
     return str(cfg["id"])
 
 
+def merge_preserve_local(cfg: dict[str, Any]) -> bool:
+    return cfg.get("merge_preserve_local") is True
+
+
 def radicale_put_url(cfg: dict[str, Any]) -> str:
     base = os.environ.get("RADICALE_BASE_URL", "http://radicale:5232").rstrip("/")
     user = env("RADICALE_USER")
@@ -101,6 +114,163 @@ def put_radicale(url: str, user: str, password: str, body: bytes) -> None:
                 _die(f"sync: PUT unexpected status {resp.status}")
     except urllib.error.HTTPError as e:
         _die(f"sync: PUT failed {e.code} {e.reason}\n{e.read().decode(errors='replace')}")
+
+
+def get_radicale(url: str, user: str, password: str) -> bytes | None:
+    req = urllib.request.Request(url, method="GET")
+    token = base64.b64encode(f"{user}:{password}".encode()).decode()
+    req.add_header("Authorization", f"Basic {token}")
+    try:
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            if resp.status == 404:
+                return None
+            data = resp.read()
+            if not data or not data.strip():
+                return None
+            return data
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return None
+        raise
+
+
+def _empty_calendar_shell(calendar_name: str) -> ICalCalendar:
+    cal = ICalCalendar()
+    cal.add("prodid", "-//calendar-sync//EN")
+    cal.add("version", "2.0")
+    cal.add("calscale", "GREGORIAN")
+    cal.add("x-wr-calname", calendar_name)
+    return cal
+
+
+def _safe_parse_calendar(data: bytes | None, calendar_name: str) -> ICalCalendar:
+    if not data or not data.strip():
+        return _empty_calendar_shell(calendar_name)
+    try:
+        cal = ICalCalendar.from_ical(data)
+        if isinstance(cal, ICalCalendar):
+            return cal
+    except Exception as e:
+        print(f"sync: local calendar parse failed, treating as empty: {e!r}", file=sys.stderr)
+    return _empty_calendar_shell(calendar_name)
+
+
+def _calendar_shell_from_upstream(up: ICalCalendar, calendar_name: str) -> ICalCalendar:
+    out = ICalCalendar()
+    for key in ("prodid", "version", "calscale"):
+        if key in up:
+            out.add(key, up[key])
+    if "prodid" not in out:
+        out.add("prodid", "-//calendar-sync//EN")
+    if "version" not in out:
+        out.add("version", "2.0")
+    if "calscale" not in out:
+        out.add("calscale", "GREGORIAN")
+    out.add("x-wr-calname", calendar_name)
+    return out
+
+
+def _add_vtimezones_dedup(out: ICalCalendar, *sources: ICalCalendar) -> None:
+    seen: set[str] = set()
+    for src in sources:
+        for c in getattr(src, "subcomponents", []):
+            if c.name != "VTIMEZONE":
+                continue
+            tid = c.get("tzid")
+            tid_s = str(tid) if tid is not None else ""
+            if not tid_s or tid_s in seen:
+                continue
+            seen.add(tid_s)
+            out.add_component(c.copy())
+
+
+def _vevent_uids(cal: ICalCalendar) -> set[str]:
+    out: set[str] = set()
+    for c in getattr(cal, "subcomponents", []):
+        if c.name != "VEVENT":
+            continue
+        u = c.get("uid")
+        if u is not None:
+            out.add(str(u))
+    return out
+
+
+def merge_google_calendar(local_ical: bytes | None, google_ical: bytes, calendar_name: str) -> bytes:
+    cal_g = ICalCalendar.from_ical(google_ical)
+    if not isinstance(cal_g, ICalCalendar):
+        _die("sync(google): merge upstream is not a VCALENDAR")
+
+    cal_l = _safe_parse_calendar(local_ical, calendar_name)
+    google_uids = _vevent_uids(cal_g)
+
+    out = _calendar_shell_from_upstream(cal_g, calendar_name)
+    _add_vtimezones_dedup(out, cal_g, cal_l)
+
+    g_events = [c.copy() for c in getattr(cal_g, "subcomponents", []) if c.name == "VEVENT"]
+    g_events.sort(key=lambda x: str(x.get("uid") or ""))
+    for c in g_events:
+        out.add_component(c)
+
+    for c in getattr(cal_l, "subcomponents", []):
+        if c.name != "VEVENT":
+            continue
+        uid_s = str(c.get("uid") or "")
+        if uid_s in google_uids:
+            continue
+        if uid_s.endswith(GOOGLE_UID_SUFFIX) and uid_s not in google_uids:
+            continue
+        out.add_component(c.copy())
+
+    for c in getattr(cal_l, "subcomponents", []):
+        if c.name in ("VTODO", "VJOURNAL"):
+            out.add_component(c.copy())
+
+    return out.to_ical()
+
+
+def _ics_feed_tagged(component: Any) -> bool:
+    raw = component.get(ICS_FEED_SYNC_PROP) or component.get(ICS_FEED_SYNC_PROP.lower())
+    if raw is None:
+        return False
+    return str(raw).lower() == ICS_FEED_SYNC_VALUE
+
+
+def merge_ics_feed_calendar(local_ical: bytes | None, feed_ical: bytes, calendar_name: str) -> bytes:
+    cal_f = ICalCalendar.from_ical(feed_ical)
+    if not isinstance(cal_f, ICalCalendar):
+        _die("sync(ics): merge upstream is not a VCALENDAR")
+
+    cal_l = _safe_parse_calendar(local_ical, calendar_name)
+    feed_uids = _vevent_uids(cal_f)
+
+    out = _calendar_shell_from_upstream(cal_f, calendar_name)
+    _add_vtimezones_dedup(out, cal_f, cal_l)
+
+    f_events = [c.copy() for c in getattr(cal_f, "subcomponents", []) if c.name == "VEVENT"]
+    f_events.sort(key=lambda x: str(x.get("uid") or ""))
+    for c in f_events:
+        c.add(ICS_FEED_SYNC_PROP.lower(), ICS_FEED_SYNC_VALUE)
+        out.add_component(c)
+
+    kept_local = []
+    for c in getattr(cal_l, "subcomponents", []):
+        if c.name != "VEVENT":
+            continue
+        uid_s = str(c.get("uid") or "")
+        if uid_s in feed_uids:
+            continue
+        if _ics_feed_tagged(c):
+            continue
+        kept_local.append(c.copy())
+    kept_local.sort(key=lambda x: str(x.get("uid") or ""))
+    for c in kept_local:
+        out.add_component(c)
+
+    for c in getattr(cal_l, "subcomponents", []):
+        if c.name in ("VTODO", "VJOURNAL"):
+            out.add_component(c.copy())
+
+    return out.to_ical()
 
 
 # -------------------------
@@ -153,7 +323,10 @@ def run_ics_loop(cfg: dict[str, Any]) -> None:
     rad_pass = env("RADICALE_PASSWORD")
     rad_put = radicale_put_url(cfg)
 
-    print(f"sync(ics): interval={interval}s href={href} name={cal_name} put={rad_put}")
+    merge_on = merge_preserve_local(cfg)
+    print(
+        f"sync(ics): interval={interval}s href={href} name={cal_name} put={rad_put} merge_preserve_local={merge_on}"
+    )
     while True:
         print(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "download ICS")
         try:
@@ -165,6 +338,34 @@ def run_ics_loop(cfg: dict[str, Any]) -> None:
                 body = text.encode("utf-8")
             except Exception as e:
                 _die(f"ics-sync: failed to normalize ICS: {e!r}")
+
+            if merge_on:
+                try:
+                    parsed = ICalCalendar.from_ical(body)
+                    if not isinstance(parsed, ICalCalendar):
+                        raise ValueError("feed is not a single VCALENDAR")
+                except Exception as e:
+                    print(
+                        f"sync(ics): merge skipped (feed parse error), not updating Radicale: {e!r}",
+                        file=sys.stderr,
+                    )
+                    import traceback
+
+                    traceback.print_exc()
+                    print(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), f"sleeping {interval}s")
+                    time.sleep(interval)
+                    continue
+                try:
+                    local = get_radicale(rad_put, rad_user, rad_pass)
+                    body = merge_ics_feed_calendar(local, body, cal_name)
+                except Exception as e:
+                    print(f"sync(ics): merge error {e!r}", file=sys.stderr)
+                    import traceback
+
+                    traceback.print_exc()
+                    print(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), f"sleeping {interval}s")
+                    time.sleep(interval)
+                    continue
 
             print(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "upload")
             put_radicale(rad_put, rad_user, rad_pass, body)
@@ -330,13 +531,19 @@ def run_google_loop(cfg: dict[str, Any]) -> None:
     creds = load_google_credentials()
     service = build("calendar", "v3", credentials=creds, cache_discovery=False)
 
-    print(f"sync(google): interval={interval}s calendar={cal_id} href={href} name={cal_name} put={rad_put}")
+    merge_on = merge_preserve_local(cfg)
+    print(
+        f"sync(google): interval={interval}s calendar={cal_id} href={href} name={cal_name} put={rad_put} merge_preserve_local={merge_on}"
+    )
 
     while True:
         print(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "fetch Google Calendar")
         try:
             events = fetch_all_events(service, str(cal_id))
             ics = events_to_ics(events, cal_name)
+            if merge_on:
+                local = get_radicale(rad_put, rad_user, rad_pass)
+                ics = merge_google_calendar(local, ics, cal_name)
             print(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), f"upload {len(events)} events")
             put_radicale(rad_put, rad_user, rad_pass, ics)
         except Exception as e:

@@ -1,0 +1,37 @@
+# Playwright MCP (streamable HTTP /mcp). Hermes/other clients on mcp-net use Host: playwright-mcp → set ALLOWED_HOSTS.
+# Host: http://localhost:8931/mcp | mcp-net: http://playwright-mcp:8931/mcp
+name: playwright
+
+services:
+  playwright-mcp:
+    image: mcr.microsoft.com/playwright/mcp:latest
+    container_name: playwright-mcp
+    init: true
+    restart: unless-stopped
+    shm_size: "1gb"
+    ports:
+      - "127.0.0.1:${PLAYWRIGHT_MCP_PORT:-8931}:8931"
+    environment:
+      NODE_ENV: production
+      PLAYWRIGHT_MCP_OUTPUT_DIR: /tmp/playwright-output
+      # Allow Docker DNS names (e.g. playwright-mcp); default host check only allows bind host → 403 without this.
+      PLAYWRIGHT_MCP_ALLOWED_HOSTS: "*"
+    # Image ENTRYPOINT already runs node /app/cli.js (chromium, headless, --no-sandbox); append HTTP bind only.
+    command:
+      - --port
+      - "8931"
+      - --host
+      - "0.0.0.0"
+    volumes:
+      - playwright-mcp-output:/tmp/playwright-output
+    networks:
+      - default
+      - mcp-net
+
+volumes:
+  playwright-mcp-output:
+
+networks:
+  mcp-net:
+    name: mcp-net
+    driver: bridge

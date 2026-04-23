@@ -41,13 +41,13 @@ Set the Tailscale Serve config to the current config:
 tailscale serve set-config --all > serve.hujson
 ```
 
-Expose the calendar MCP (SSE) service on the host port `8799` (path `/sse` on that port). For Tailscale path mounts, point your client at the served URL that reaches `http://127.0.0.1:8799/sse` (declarative configuration not supported yet). Example:
+Expose the calendar MCP (streamable HTTP) service on the host port `8799` (path `/mcp` on that port). For Tailscale path mounts, point your client at the served URL that reaches `http://127.0.0.1:8799/mcp` (declarative configuration not supported yet). Example:
 
 ```bash
 tailscale serve --bg --https=443 --set-path=/mcp 8799
 ```
 
-If your MCP client expects the SSE endpoint explicitly, use `https://<tailnet-host>/mcp/sse` when the proxy forwards the path unchanged, or `http://127.0.0.1:8799/sse` locally.
+If your MCP client uses Streamable HTTP, use `https://<tailnet-host>/mcp` when the proxy forwards the path unchanged, or `http://127.0.0.1:8799/mcp` locally.
 
 ---
 

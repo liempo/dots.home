@@ -260,8 +260,8 @@ docker compose logs -f sync-astra
 
 The **`chronos-mcp`** service runs **[Chronos MCP](https://github.com/democratize-technology/chronos-mcp)**. Radicale credentials for the default account come from **`docker/calendar/.env`** via compose (`CALDAV_*`, see §2). **`~/.calendar/chronos/accounts.json`** is optional scaffolding for extra accounts (or leave `accounts` empty).
 
-- **Transport**: FastMCP **SSE** on container port `8000`, published on the host as **`127.0.0.1:8799`**.
-- **Local MCP URL**: `http://127.0.0.1:8799/sse` (SSE path; message POSTs use `/messages/` on the same port per FastMCP defaults).
+- **Transport**: FastMCP **streamable HTTP** on container port `8000`, published on the host as **`127.0.0.1:8799`**.
+- **Local MCP URL**: `http://127.0.0.1:8799/mcp` (FastMCP default streamable HTTP path; works with Hermes and other Streamable HTTP MCP clients).
 
 Logs:
 

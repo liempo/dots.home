@@ -5,6 +5,7 @@ let
   # Hermes alias to containerized Hermes agent 
   hermes = pkgs.writeShellScriptBin "hermes" ''
     exec docker run -it --rm \
+      --network mcp-net \
       -v "$HOME/.hermes:/opt/data" \
       nousresearch/hermes-agent "$@"
   '';

@@ -3,6 +3,7 @@
 
 - **Host config**: NixOS flake for `homestation` + Home Manager for user `liempo`.
 - **Services**: systemd-managed Docker Compose stacks under `docker/`.
+- **Hermes workspace disk**: host `/box` is mounted inside Hermes containers at `/workspace` (see `ARCHITECTURE.md`, Hermes stack).
 
 If you need the big-picture topology, read `ARCHITECTURE.md` first.
 

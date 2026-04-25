@@ -95,6 +95,8 @@ sequenceDiagram
   - Reads gateway health via `GATEWAY_HEALTH_URL=http://hermes:8642`
   - Shares the same `~/.hermes` volume mount
 
+Both **`hermes`** and **`dashboard`** bind-mount the host **`/box`** volume at **`/workspace`** in the container (`/box:/workspace` in `docker/hermes/compose.yaml`). On NixOS, `/box` is the mounted disk partition (`fileSystems."/box"` in `system/configuration.nix`). Use **`/workspace`** for paths inside the containers; the **`hermes`** systemd unit waits for **`box.mount`** before starting Compose (`system/services.nix`).
+
 #### Honcho as an included stack (submodule boundary)
 
 `docker/hermes/honcho/compose.yaml` builds and runs **Honcho** (FastAPI + worker) plus data stores:
@@ -121,11 +123,14 @@ flowchart LR
 
   subgraph host["Host filesystem"]
     hermes_data["~/.hermes"]
+    box_host["/box → /workspace\nin hermes + dashboard"]
     calendar_data["~/.calendar"]
   end
 
   hermes --- hermes_data
   dashboard --- hermes_data
+  hermes --- box_host
+  dashboard --- box_host
 ```
 
 #### Key runtime flow (Hermes ↔ Honcho)

@@ -1,4 +1,5 @@
 # HERMES_UID / HERMES_GID align ~/.hermes bind-mount ownership with this host user (1000:100).
+# Host /box (NixOS fileSystems."/box") is bind-mounted at /workspace in hermes + dashboard.
 name: hermes
 
 include:
@@ -17,6 +18,7 @@ services:
       - "8642:8642"
     volumes:
       - ~/.hermes:/opt/data
+      - /box:/workspace
     environment:
       HERMES_UID: "1000"
       HERMES_GID: "100"
@@ -38,6 +40,7 @@ services:
       - "9119:9119"
     volumes:
       - ~/.hermes:/opt/data
+      - /box:/workspace
     environment:
       HERMES_UID: "1000"
       HERMES_GID: "100"

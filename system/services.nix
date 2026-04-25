@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 let
   dotsDir = "${config.users.users.liempo.home}/.dots";
@@ -44,9 +44,9 @@ in
 
   systemd.services.hermes = {
     description = "Hermes agent stack (Docker Compose)";
-    after = [ "network-online.target" "docker.service" ];
+    after = [ "network-online.target" "docker.service" "box.mount" ];
     wants = [ "network-online.target" ];
-    requires = [ "docker.service" ];
+    requires = [ "docker.service" "box.mount" ];
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
       Type = "simple";
@@ -58,5 +58,33 @@ in
       ExecStop = "${compose} -f compose.yaml down";
       TimeoutStopSec = "120";
     };
+  };
+
+  # SMB share for the /box mount (see configuration.nix fileSystems."/box").
+  # After deploy: sudo smbpasswd -a liempo   # Samba password (separate from login).
+  services.samba = {
+    enable = true;
+    openFirewall = true;
+    settings = {
+      global = {
+        workgroup = "WORKGROUP";
+        "server string" = "homestation box";
+        "server role" = "standalone server";
+        "map to guest" = "Never";
+      };
+      box = {
+        path = "/box";
+        comment = "Box (/box)";
+        browseable = "yes";
+        "read only" = "no";
+        "guest ok" = "no";
+        "valid users" = "liempo";
+      };
+    };
+  };
+
+  systemd.services.samba-smbd = lib.mkIf config.services.samba.enable {
+    after = [ "box.mount" ];
+    requires = [ "box.mount" ];
   };
 }

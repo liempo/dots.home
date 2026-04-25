@@ -22,6 +22,13 @@
     options e1000e VerifyNVMChecksum=0
   '';
 
+  # Persistent storage; fsType must match the actual filesystem on the partition.
+  fileSystems."/box" = {
+    device = "/dev/sda3";
+    fsType = "ext4";
+    options = [ "defaults" ];
+  };
+
 
 # ── System ───────────────────────────────────────────────────────────────
 
@@ -54,7 +61,7 @@
     description = "Liempo";
     extraGroups = [ "wheel" "networkmanager" "docker" ];
     packages = with pkgs; [
-      tmux zoxide neovim btop
+      tmux zoxide neovim btop sqlite
       # For cursor ssh
       nodejs
       # services 

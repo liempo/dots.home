@@ -1,5 +1,4 @@
-# Caveats: ~/.hermes is only editable by hermes or root (not liempo) on this host.
-# Do not set HERMES_UID / HERMES_GID here — dashboard breaks (unable to build).
+# HERMES_UID / HERMES_GID align ~/.hermes bind-mount ownership with this host user (1000:100).
 name: hermes
 
 include:
@@ -18,6 +17,9 @@ services:
       - "8642:8642"
     volumes:
       - ~/.hermes:/opt/data
+    environment:
+      HERMES_UID: "1000"
+      HERMES_GID: "100"
     networks:
       - default
       - mcp-net
@@ -37,7 +39,9 @@ services:
     volumes:
       - ~/.hermes:/opt/data
     environment:
-      - GATEWAY_HEALTH_URL=http://hermes:8642
+      HERMES_UID: "1000"
+      HERMES_GID: "100"
+      GATEWAY_HEALTH_URL: http://hermes:8642
     depends_on:
       - hermes
     deploy:

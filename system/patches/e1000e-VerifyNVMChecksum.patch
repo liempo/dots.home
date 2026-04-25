@@ -1,0 +1,104 @@
+From: Jacek Kowalski <Jacek@jacekk.info>
+Subject: [PATCH] e1000e: add option not to verify NVM checksum
+
+Many laptops and motherboards including I219-V network card have
+invalid NVM checksum. This adds e1000e module option VerifyNVMChecksum
+(defaults to 1) that allows skipping checksum verification by setting
+it to 0.
+
+Signed-off-by: Jacek Kowalski <Jacek@jacekk.info>
+
+---
+ drivers/net/ethernet/intel/e1000e/e1000.h   |  1 +
+ drivers/net/ethernet/intel/e1000e/netdev.c  | 22 ++++++++++++----------
+ drivers/net/ethernet/intel/e1000e/param.c   | 30 ++++++++++++++++++++++++++++++
+ 3 files changed, 43 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/net/ethernet/intel/e1000e/e1000.h b/drivers/net/ethernet/intel/e1000e/e1000.h
+--- a/drivers/net/ethernet/intel/e1000e/e1000.h
++++ b/drivers/net/ethernet/intel/e1000e/e1000.h
+@@ -461,6 +461,7 @@ s32 e1000e_get_base_timinca(struct e1000_adapter *adapter, u32 *timinca);
+ #define FLAG2_CHECK_RX_HWTSTAMP           BIT(13)
+ #define FLAG2_CHECK_SYSTIM_OVERFLOW       BIT(14)
+ #define FLAG2_ENABLE_S0IX_FLOWS           BIT(15)
++#define FLAG2_VERIFY_NVM_CHECKSUM         BIT(16)
+ 
+ #define E1000_RX_DESC_PS(R, i)	    \
+ 	(&(((union e1000_rx_desc_packet_split *)((R).desc))[i]))
+diff --git a/drivers/net/ethernet/intel/e1000e/netdev.c b/drivers/net/ethernet/intel/e1000e/netdev.c
+--- a/drivers/net/ethernet/intel/e1000e/netdev.c
++++ b/drivers/net/ethernet/intel/e1000e/netdev.c
+@@ -7568,16 +7568,18 @@ static int e1000_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
+ 	 */
+ 	adapter->hw.mac.ops.reset_hw(&adapter->hw);
+ 
+-	/* systems with ASPM and others may see the checksum fail on the first
+-	 * attempt. Let's give it a few tries
+-	 */
+-	for (i = 0;; i++) {
+-		if (e1000_validate_nvm_checksum(&adapter->hw) >= 0)
+-			break;
+-		if (i == 2) {
+-			dev_err(&pdev->dev, "The NVM Checksum Is Not Valid\n");
+-			err = -EIO;
+-			goto err_eeprom;
++	if (adapter->flags2 & FLAG2_VERIFY_NVM_CHECKSUM) {
++		/* systems with ASPM and others may see the checksum fail on the first
++		 * attempt. Let's give it a few tries
++		 */
++		for (i = 0;; i++) {
++			if (e1000_validate_nvm_checksum(&adapter->hw) >= 0)
++				break;
++			if (i == 2) {
++				dev_err(&pdev->dev, "The NVM Checksum Is Not Valid\n");
++				err = -EIO;
++				goto err_eeprom;
++			}
+ 		}
+ 	}
+ 
+diff --git a/drivers/net/ethernet/intel/e1000e/param.c b/drivers/net/ethernet/intel/e1000e/param.c
+--- a/drivers/net/ethernet/intel/e1000e/param.c
++++ b/drivers/net/ethernet/intel/e1000e/param.c
+@@ -127,6 +127,15 @@ E1000_PARAM(KumeranLockLoss, "Enable Kumeran lock loss workaround");
+ E1000_PARAM(WriteProtectNVM,
+ 	    "Write-protect NVM [WARNING: disabling this can lead to corrupted NVM]");
+ 
++/* Verify NVM Checksum
++ *
++ * Valid Range: 0, 1
++ *
++ * Default Value: 1 (enabled)
++ */
++E1000_PARAM(VerifyNVMChecksum,
++	    "Verify NVM checksum [WARNING: disabling can cause invalid behavior]");
++
+ /* Enable CRC Stripping
+  *
+  * Valid Range: 0, 1
+@@ -524,4 +533,25 @@ void e1000e_check_options(struct e1000_adapter *adapter)
+ 			}
+ 		}
+ 	}
++	/* Verify NVM checksum */
++	{
++		static const struct e1000_option opt = {
++			.type = enable_option,
++			.name = "Verify NVM checksum",
++			.err  = "defaulting to Enabled",
++			.def  = OPTION_ENABLED
++		};
++
++		if (num_VerifyNVMChecksum > bd) {
++			unsigned int verify_nvm_checksum =
++				VerifyNVMChecksum[bd];
++			e1000_validate_option(&verify_nvm_checksum, &opt,
++						adapter);
++			if (verify_nvm_checksum)
++				adapter->flags2 |= FLAG2_VERIFY_NVM_CHECKSUM;
++		} else {
++			if (opt.def)
++				adapter->flags2 |= FLAG2_VERIFY_NVM_CHECKSUM;
++		}
++	}
+ }

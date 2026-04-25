@@ -6,8 +6,20 @@
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
+
+  # e1000e: VerifyNVMChecksum module param; see
+  # https://lkml.org/lkml/2025/3/18/1505 (Jacek Kowalski, 2025-03-18).
+  # Set to 0 if the I219-V (or similar) reports invalid NVM checksum on every boot.
+  boot.kernelPatches = [
+    {
+      name = "e1000e-VerifyNVMChecksum";
+      patch = ./patches/e1000e-VerifyNVMChecksum.patch;
+    }
+  ];
+
   boot.extraModprobeConfig = ''
     options snd_hda_intel index=1
+    options e1000e VerifyNVMChecksum=0
   '';
 
 

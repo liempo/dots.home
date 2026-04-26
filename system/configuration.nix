@@ -79,9 +79,11 @@
   ];
   environment.variables.EDITOR = "nvim";
 
-  # Scarf invoke /usr/bin/pgrep; NixOS only has it on PATH.
   systemd.tmpfiles.rules = [
+    # -- Scarf invokes /usr/bin/pgrep; NixOS only has it on PATH. --
     "L+ /usr/bin/pgrep - - - - ${pkgs.procps}/bin/pgrep"
+    # -- I own the box! I own the box! --
+    "Z /box - liempo users -"
   ];
 
 # ── Services ────────────────────────────────────────────────────────────

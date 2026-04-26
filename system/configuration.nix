@@ -79,6 +79,11 @@
   ];
   environment.variables.EDITOR = "nvim";
 
+  # Scarf invoke /usr/bin/pgrep; NixOS only has it on PATH.
+  systemd.tmpfiles.rules = [
+    "L+ /usr/bin/pgrep - - - - ${pkgs.procps}/bin/pgrep"
+  ];
+
 # ── Services ────────────────────────────────────────────────────────────
 
   # OpenSSH daemon

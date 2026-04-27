@@ -59,13 +59,13 @@
   users.users.liempo = {
     isNormalUser = true;
     description = "Liempo";
-    extraGroups = [ "wheel" "networkmanager" "docker" ];
+    extraGroups = [ "wheel" "networkmanager" "docker" "libvirtd" ];
     packages = with pkgs; [
       tmux zoxide neovim btop sqlite
       # For cursor ssh
       nodejs
-      # services 
-      docker-compose 
+      # services
+      docker-compose
     ];
     shell = pkgs.zsh;
   };

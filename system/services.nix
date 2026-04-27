@@ -79,6 +79,11 @@ in
         "read only" = "no";
         "guest ok" = "no";
         "valid users" = "liempo";
+        "vfs objects" = "recycle";
+        "recycle:repository" = ".recycle/%u";
+        "recycle:keeptree" = "yes";
+        "recycle:versions" = "yes";
+        "recycle:touch" = "yes";
       };
     };
   };

@@ -22,6 +22,7 @@
           modules = [
             ./system/hardware.nix
             ./system/configuration.nix
+            ./system/libvirt.nix
             ./system/networking.nix
             ./system/services.nix
 

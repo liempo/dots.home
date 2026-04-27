@@ -6,6 +6,8 @@ let
   hermes = pkgs.writeShellScriptBin "hermes" ''
     exec docker run -it --rm \
       --network mcp-net \
+      -e HERMES_UID="$(id -u)" \
+      -e HERMES_GID="$(id -g)" \
       -v "$HOME/.hermes:/opt/data" \
       nousresearch/hermes-agent "$@"
   '';

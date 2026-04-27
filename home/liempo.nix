@@ -6,6 +6,7 @@ let
   hermes = pkgs.writeShellScriptBin "hermes" ''
     exec docker run -it --rm \
       --network mcp-net \
+      --add-host=host.docker.internal:host-gateway \
       -e HERMES_UID="$(id -u)" \
       -e HERMES_GID="$(id -g)" \
       -v "$HOME/.hermes:/opt/data" \

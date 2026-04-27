@@ -9,12 +9,13 @@
     };
   };
 
-  outputs = { 
-    self,
-    nixpkgs,
-    home-manager,
-    ...
-   }:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      home-manager,
+      ...
+    }:
     {
       nixosConfigurations = {
         homestation = nixpkgs.lib.nixosSystem {
@@ -38,4 +39,3 @@
       };
     };
 }
-

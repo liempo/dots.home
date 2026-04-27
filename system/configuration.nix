@@ -62,10 +62,7 @@
     extraGroups = [ "wheel" "networkmanager" "docker" "libvirtd" ];
     packages = with pkgs; [
       tmux zoxide neovim btop sqlite
-      # For cursor ssh
-      nodejs
-      # services
-      docker-compose
+      nodejs docker-compose
     ];
     shell = pkgs.zsh;
   };
@@ -75,7 +72,7 @@
 
   # List packages installed in system profile. 
   environment.systemPackages = with pkgs; [
-    git zsh
+    git zsh ripgrep
   ];
   environment.variables.EDITOR = "nvim";
 

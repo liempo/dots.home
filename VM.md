@@ -4,7 +4,7 @@ Homestation runs **headless** NixOS with **libvirt** enabled (`system/libvirt.ni
 
 - **`/dev/kvm` exists** (Intel VT-x enabled in firmware).
 - Your user is in the **`libvirtd`** group (log out/in after `nixos-rebuild switch`).
-- ISOs and disk images live on **`/box`** (large disk; optional Samba share `box` — see `system/services.nix`).
+- ISOs and disk images live on **`/box`** (large disk). Guests reach **`/box` over the network via Samba** (`box` share — see `system/services.nix` and §5).
 
 Use **`virsh`**, **`qemu-img`**, and **`virt-install`** (via `nix shell` below). Default VM disks are usually under `/var/lib/libvirt/images/` unless you override `--disk path=...`.
 
@@ -157,134 +157,35 @@ That requires **swtpm** integrated with libvirt (e.g. `virtualisation.libvirtd.q
 
 ---
 
-## 5. “Mounting stuff” (host ↔ guest)
+## 5. Accessing `/box` from guests (Samba) — recommended
 
-### Mount a host folder such as `/box/example`
+Homestation serves the host directory **`/box`** over the network as the **`box`** share for user **`liempo`** (see `system/services.nix`). **Linux and Windows guests** should use this; do not rely on libvirt filesystem passthrough for `/box`.
 
-On the **host**, create the directory once (if it does not exist) and make sure QEMU can traverse the path (libvirt runs guests as **`qemu-libvirtd`**):
+**On the host:** create subdirectories under `/box` as usual (`mkdir`, ownership for your user). Samba exposes the whole tree under `box`.
 
-```bash
-sudo mkdir -p /box/example
-# Every directory from / down to /box/example needs the execute bit for "others"
-# (or use ACLs) so qemu can reach the folder. Example:
-sudo chmod o+rx /box /box/example
-# optional: put files there as liempo
-sudo chown liempo:users /box/example
-```
+**From a guest on `network=default`**, use the **libvirt NAT gateway** on the host (usually **`192.168.122.1`** — confirm with `ip -br a` on homestation). If the guest can route to homestation by **LAN or Tailscale hostname**, that works too.
 
-Below, **`/box/example`** is the host path; pick one method (virtiofs is usually best on **Linux** guests; **Samba** works for **Windows** and Linux without changing VM XML).
-
----
-
-### A. Samba share of `/box` (already on homestation)
-
-The host shares **`/box`** as **`box`** for user **`liempo`** (see `system/services.nix`). Anything under `/box`—including **`/box/example`**—appears under that share.
-
-From a guest on **`network=default`**, reach the host by **libvirt’s gateway IP** (often **`192.168.122.1`** on `virbr0` — confirm with `ip -br a` on homestation).
-
-**Linux guest — mount whole share, then use the subfolder:**
+**Linux — mount entire `/box`:**
 
 ```bash
 sudo mkdir -p /mnt/box
 sudo mount -t cifs //192.168.122.1/box /mnt/box -o username=liempo,uid=$(id -u)
-ls /mnt/box/example
 ```
 
-**Linux guest — mount only the `example` subfolder at `/mnt/example`** (same share `box`; `prefixpath` is relative to `/box` on the host):
+**Linux — mount only a subfolder** (e.g. `example` under `/box`; `prefixpath` is relative to `/box` on the host):
 
 ```bash
 sudo mkdir -p /mnt/example
 sudo mount -t cifs //192.168.122.1/box /mnt/example -o username=liempo,uid=$(id -u),prefixpath=example
 ```
 
-**Windows guest:** Map drive `\\<host-ip>\box` and open the **`example`** folder, or use `\\<host-ip>\box\example` if your client allows a deeper UNC path (behavior varies; mapping `\\host\box` and navigating to `example` is the most compatible).
+**Windows:** In File Explorer use **`\\192.168.122.1\box`** (or map a network drive to that UNC). Open subfolders as needed (e.g. `tonic` under the share if you use `\\192.168.122.1\box\tonic`).
 
-Use the **actual** virbr address for your machine, or homestation’s **Tailscale / LAN hostname** if the guest reaches it that way.
-
-Firewall: Samba is already opened in your config; NAT guests can normally reach the host on `virbr0`.
+Samba is already allowed in the homestation firewall config for this use case; NAT guests normally reach the host on `virbr0`.
 
 ---
 
-### B. Virtiofs — passthrough `/box/example` (Linux guest)
-
-**virtiofs** shares one host directory into the guest as a fast POSIX filesystem. Good for **`/box/example`** when the guest is Linux and you control the VM definition.
-
-1. Guest kernel must support **virtiofs** (many Ubuntu images do).
-2. **`virt-install`**: add a filesystem line (tag is arbitrary; used inside the guest):
-
-```bash
-nix shell nixpkgs#virt-manager -c virt-install \
-  ... \
-  --filesystem /box/example,boxexample,type=mount,driver.type=virtiofs
-```
-
-3. **Inside the Linux guest** after boot:
-
-```bash
-sudo mkdir -p /mnt/box-example
-sudo mount -t virtiofs boxexample /mnt/box-example
-```
-
-4. **Optional — fstab** (guest):
-
-```fstab
-boxexample  /mnt/box-example  virtiofs  defaults  0  0
-```
-
-**Existing VM:** `virsh edit <name>` and add a `<devices>` entry (adjust for your libvirt/QEMU version if the parser complains):
-
-```xml
-<memoryBacking>
-  <source type="memfd"/>
-  <access mode="shared"/>
-</memoryBacking>
-...
-<filesystem type="mount" accessmode="passthrough">
-  <driver type="virtiofs"/>
-  <source dir="/box/example"/>
-  <target dir="boxexample"/>
-</filesystem>
-```
-
-Then on the guest: `sudo mount -t virtiofs boxexample /mnt/box-example`. Cold-plug changes usually require **shut down** the VM, edit XML, start again.
-
-**Security:** `passthrough` uses host UID/GID semantics; only share directories you trust.
-
----
-
-### C. Plan 9 / 9p — `/box/example` (Linux guest)
-
-Works on more kernels than virtiofs; a bit slower. At install time:
-
-```text
---filesystem /box/example,box9p,type=mount,accessmode=mapped
-```
-
-**Inside the guest:**
-
-```bash
-sudo mkdir -p /mnt/box-example
-sudo mount -t 9p -o trans=virtio,version=9p2000.L,msize=65536 box9p /mnt/box-example
-```
-
-For an **existing** VM, add a `<filesystem type='mount'>` block with `<source dir='/box/example'/>` and `<target dir='box9p'/>` via `virsh edit`, then mount as above.
-
----
-
-### D. Extra virtual disk (block device)
-
-Create a qcow2 and attach:
-
-```bash
-qemu-img create -f qcow2 /box/vm/disks/win11-data.qcow2 100G
-virsh attach-disk win11 /box/vm/disks/win11-data.qcow2 vdb --cache none
-```
-
-Inside the guest, partition/format the new disk. Use **`virsh detach-disk`** before moving files if you need a clean detach.
-
----
-
-### E. ISO / CD swap after install
+## 6. ISO / CD swap after install
 
 ```bash
 virsh change-media win11 sda /box/vm/ios/virtio-win.iso --insert
@@ -294,7 +195,7 @@ Device name (`sda`, `hdc`, …) depends on your VM XML — use `virsh domblklist
 
 ---
 
-## 6. Useful commands
+## 7. Useful commands
 
 | Action | Command |
 |--------|---------|
@@ -305,14 +206,24 @@ Device name (`sda`, `hdc`, …) depends on your VM XML — use `virsh domblklist
 | Console | `virsh console NAME` (needs serial/getty in guest) |
 | VNC display | `virsh domdisplay NAME` |
 | Autostart at boot | `virsh autostart NAME` |
+| Edit domain XML | `sudo env EDITOR="$(command -v nvim)" virsh edit NAME` (see §8 if `vi` missing) |
 
 ---
 
-## 7. Troubleshooting
+## 8. Troubleshooting
 
 - **`/dev/kvm` missing** → firmware VT-x / VMX (see kernel log: `VMX not enabled (by BIOS)`).
 - **No network in guest** → `default` net active; virtio driver in guest for NIC.
 - **`virt-install` not found** → use `nix shell nixpkgs#virt-manager -c virt-install ...`.
-- **Permission on ISO** → `ls -l` on host path; libvirt runs qemu as `qemu-libvirtd` — directories need traverse (`x`) for others or adjust ACLs.
 
-For XML editing: `virsh edit NAME` (uses `$EDITOR`).
+For XML editing: **`virsh edit NAME`** uses **`$EDITOR`** (then **`$VISUAL`**, then **`vi`**).
+
+**NixOS / `sudo`:** `EDITOR=nvim sudo virsh edit …` often fails with **`Cannot find 'vi' in path`** because **`sudo` resets the environment**, so `virsh` never sees `EDITOR` and falls back to **`vi`** (not installed on many NixOS systems). Use one of:
+
+```bash
+sudo env EDITOR="$(command -v nvim)" virsh edit tonic
+# or, if your virsh supports it:
+sudo virsh edit --editor "$(command -v nvim)" tonic
+# or preserve your user env (requires sudoers `SETENV` / permissive env_keep if restricted):
+sudo -E virsh edit tonic   # after: export EDITOR="$(command -v nvim)"
+```

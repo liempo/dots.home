@@ -60,6 +60,24 @@ in
     };
   };
 
+  systemd.services.jira = {
+    description = "Jira MCP stack (Docker Compose)";
+    after = [ "network-online.target" "docker.service" ];
+    wants = [ "network-online.target" ];
+    requires = [ "docker.service" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "simple";
+      Restart = "on-failure";
+      RestartSec = "5";
+      User = "liempo";
+      WorkingDirectory = "${dotsDir}/docker/jira";
+      ExecStart = "${compose} -f compose.yaml up --remove-orphans";
+      ExecStop = "${compose} -f compose.yaml down";
+      TimeoutStopSec = "120";
+    };
+  };
+
   # SMB share for the /box mount (see configuration.nix fileSystems."/box").
   # After deploy: sudo smbpasswd -a liempo   # Samba password (separate from login).
   services.samba = {

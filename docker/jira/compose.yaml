@@ -1,0 +1,20 @@
+# JIRA Cloud MCP: streamable HTTP on host :8800 (path `/mcp`), shared `mcp-net` with Hermes / calendar MCPs.
+name: jira
+
+services:
+  jira-mcp:
+    build: .
+    container_name: jira-mcp
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    ports:
+      - "127.0.0.1:8800:8000"
+    networks:
+      - mcp-net
+
+networks:
+  mcp-net:
+    name: mcp-net
+    driver: bridge

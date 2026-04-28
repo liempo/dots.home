@@ -18,7 +18,7 @@ services:
       - "8642:8642"
     volumes:
       - ~/.hermes:/opt/data
-      - /box:/workspace
+      - /box:/box
     environment:
       HERMES_UID: "1000"
       HERMES_GID: "100"
@@ -37,12 +37,12 @@ services:
     image: nousresearch/hermes-agent:latest
     container_name: hermes-dashboard
     restart: unless-stopped
-    command: dashboard --host 0.0.0.0 --insecure
+    command: dashboard --host 0.0.0.0 --insecure --tui
     ports:
       - "9119:9119"
     volumes:
       - ~/.hermes:/opt/data
-      - /box:/workspace
+      - /box:/box
     environment:
       HERMES_UID: "1000"
       HERMES_GID: "100"

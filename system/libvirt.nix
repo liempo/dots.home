@@ -3,7 +3,7 @@
 let
   # Set `mac` to the VM NIC: `sudo virsh dumpxml tonic | rg "mac address"`
   tonic_vm = {
-    mac = "52:54:00:00:00:01";
+    mac = "52:54:00:72:4f:3c";
     ip = "192.168.122.50";
     playwright_port = 8931;
   };

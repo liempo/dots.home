@@ -42,11 +42,29 @@ in
     };
   };
 
+  systemd.services.honcho = {
+    description = "Honcho API + deriver + Postgres + Redis (Docker Compose)";
+    after = [ "network-online.target" "docker.service" ];
+    wants = [ "network-online.target" ];
+    requires = [ "docker.service" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "simple";
+      Restart = "on-failure";
+      RestartSec = "5";
+      User = "liempo";
+      WorkingDirectory = "${dotsDir}/docker/honcho";
+      ExecStart = "${compose} -f compose.yaml up --remove-orphans";
+      ExecStop = "${compose} -f compose.yaml down";
+      TimeoutStopSec = "120";
+    };
+  };
+
   systemd.services.hermes = {
     description = "Hermes agent stack (Docker Compose)";
-    after = [ "network-online.target" "docker.service" "box.mount" ];
+    after = [ "network-online.target" "docker.service" "box.mount" "honcho.service" ];
     wants = [ "network-online.target" ];
-    requires = [ "docker.service" "box.mount" ];
+    requires = [ "docker.service" "box.mount" "honcho.service" ];
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
       Type = "simple";
@@ -62,9 +80,9 @@ in
 
   systemd.services.jira = {
     description = "Jira MCP stack (Docker Compose)";
-    after = [ "network-online.target" "docker.service" ];
+    after = [ "network-online.target" "docker.service" "box.mount" ];
     wants = [ "network-online.target" ];
-    requires = [ "docker.service" ];
+    requires = [ "docker.service" "box.mount" ];
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
       Type = "simple";
@@ -72,6 +90,24 @@ in
       RestartSec = "5";
       User = "liempo";
       WorkingDirectory = "${dotsDir}/docker/jira";
+      ExecStart = "${compose} -f compose.yaml up --remove-orphans";
+      ExecStop = "${compose} -f compose.yaml down";
+      TimeoutStopSec = "120";
+    };
+  };
+
+  systemd.services.kdbx = {
+    description = "KeePass KDBX MCP (Docker Compose)";
+    after = [ "network-online.target" "docker.service" "box.mount" ];
+    wants = [ "network-online.target" ];
+    requires = [ "docker.service" "box.mount" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "simple";
+      Restart = "on-failure";
+      RestartSec = "5";
+      User = "liempo";
+      WorkingDirectory = "${dotsDir}/docker/kdbx";
       ExecStart = "${compose} -f compose.yaml up --remove-orphans";
       ExecStop = "${compose} -f compose.yaml down";
       TimeoutStopSec = "120";

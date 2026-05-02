@@ -1,9 +1,7 @@
 # HERMES_UID / HERMES_GID align ~/.hermes bind-mount ownership with this host user (1000:100).
-# Host /box (NixOS fileSystems."/box") is bind-mounted at /workspace in hermes + dashboard.
+# Host /box (NixOS fileSystems."/box") is bind-mounted at /box in hermes + dashboard.
+# Honcho runs as a separate stack (`docker/honcho`); Hermes reaches it on `mcp-net` as `honcho_api`.
 name: hermes
-
-include:
-  - honcho/compose.yaml
 
 services:
   hermes:
@@ -11,9 +9,6 @@ services:
     container_name: hermes
     restart: unless-stopped
     command: gateway run
-    depends_on:
-      honcho_api:
-        condition: service_started
     ports:
       - "8642:8642"
     volumes:

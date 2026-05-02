@@ -1,0 +1,24 @@
+# KeePass .kdbx MCP: HTTP MCP on `mcp-net` (path `/mcp`), e.g. `http://kdbx-mcp:8000/mcp` from Hermes.
+# Host vault dir is bind-mounted at /data/vault; set KDBX_PATH=/data/vault/passbolt.kdbx (in-container path).
+name: kdbx
+
+services:
+  kdbx-mcp:
+    build: .
+    container_name: kdbx-mcp
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      FASTMCP_CHECK_FOR_UPDATES: "off"
+      PORT: "8000"
+    volumes:
+      - /box/tonic/vault:/data/vault:ro
+    networks:
+      - mcp-net
+
+networks:
+  mcp-net:
+    name: mcp-net
+    driver: bridge

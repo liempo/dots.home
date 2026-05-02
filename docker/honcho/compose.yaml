@@ -15,8 +15,6 @@ services:
         condition: service_healthy
       honcho_redis:
         condition: service_healthy
-    ports:
-      - "127.0.0.1:8000:8000"
 
     environment:
       - DB_CONNECTION_URI=postgresql+psycopg://postgres:postgres@honcho_database:5432/postgres
@@ -51,8 +49,6 @@ services:
     container_name: honcho_database
     image: pgvector/pgvector:pg15
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:5432:5432"
     command: ["postgres", "-c", "max_connections=200"]
     environment:
       - POSTGRES_DB=postgres
@@ -72,8 +68,6 @@ services:
     container_name: honcho_redis
     image: redis:8.2
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:6379:6379"
     volumes:
       - honcho_redis_data:/data
     healthcheck:

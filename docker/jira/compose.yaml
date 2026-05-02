@@ -1,16 +1,49 @@
-# JIRA Cloud MCP: streamable HTTP on host :8800 (path `/mcp`), shared `mcp-net` with Hermes / calendar MCPs.
+# Jira MCP stack on `mcp-net` (e.g. Hermes: `http://jira-tickets-mcp:8000/mcp`, attachments sibling).
+# Downloads go to host `/box/tonic/attachments` (create the directory if missing).
 name: jira
 
 services:
-  jira-mcp:
+  jira-tickets-mcp:
     build: .
+    image: jira-mcp-stack:latest
     container_name: jira-mcp
     restart: unless-stopped
     env_file:
       - path: .env
         required: false
-    ports:
-      - "127.0.0.1:8800:8000"
+    networks:
+      - mcp-net
+
+  jira-attachments-mcp:
+    build: .
+    image: jira-mcp-stack:latest
+    container_name: jira-attachments-mcp
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # hoibui/jira-mcp-server reads ATLASSIAN_* (not JIRA_EMAIL / JIRA_API_TOKEN).
+      JIRA_BASE_URL: ${JIRA_BASE_URL}
+      ATLASSIAN_USER_EMAIL: ${JIRA_EMAIL}
+      ATLASSIAN_API_TOKEN: ${JIRA_API_TOKEN}
+      DEFAULT_DOWNLOAD_PATH: /box/tonic/attachments
+    command:
+      [
+        "supergateway",
+        "--stdio",
+        "jira-attachments-mcp",
+        "--outputTransport",
+        "streamableHttp",
+        "--port",
+        "8000",
+        "--streamableHttpPath",
+        "/mcp",
+        "--healthEndpoint",
+        "/healthz",
+      ]
+    volumes:
+      - /box/tonic/attachments:/box/tonic/attachments
     networks:
       - mcp-net
 

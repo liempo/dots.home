@@ -1,0 +1,3 @@
+fastmcp>=3.0.0,<4
+pykeepass>=4.0.7,<5
+pyotp>=2.9.0,<3

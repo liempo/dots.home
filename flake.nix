@@ -7,15 +7,14 @@
       url = "github:nix-community/home-manager/release-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
-    {
-      self,
-      nixpkgs,
-      home-manager,
-      ...
-    }:
+    inputs@{ self, nixpkgs, home-manager, ... }:
     {
       nixosConfigurations = {
         homestation = nixpkgs.lib.nixosSystem {
@@ -33,6 +32,7 @@
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
               home-manager.backupFileExtension = "hm-bak";
+              home-manager.extraSpecialArgs = { inherit inputs; };
               home-manager.users.liempo = import ./home/liempo.nix;
             }
           ];

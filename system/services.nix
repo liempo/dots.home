@@ -3,14 +3,16 @@
 let
   dotsDir = "${config.users.users.liempo.home}/.dots";
   compose = "${pkgs.docker-compose}/bin/docker-compose";
+  # Populated by Home Manager sops-nix (see home/liempo.nix → secrets/docker-envs.yaml).
+  dockerEnvFile = stack: "${dotsDir}/docker/${stack}/.env";
 in
 
 {
   systemd.services.calendar = {
     description = "Calendar stack — Radicale + sync (Docker Compose)";
-    after = [ "network-online.target" "docker.service" ];
+    after = [ "network-online.target" "docker.service" "home-manager-liempo.service" ];
     wants = [ "network-online.target" ];
-    requires = [ "docker.service" ];
+    requires = [ "docker.service" "home-manager-liempo.service" ];
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
       Type = "simple";
@@ -18,6 +20,7 @@ in
       RestartSec = "5";
       User = "liempo";
       WorkingDirectory = "${dotsDir}/docker/calendar";
+      ExecStartPre = "${pkgs.coreutils}/bin/test -r ${dockerEnvFile "calendar"}";
       ExecStart = "${compose} -f compose.yaml up --remove-orphans";
       ExecStop = "${compose} -f compose.yaml down";
       TimeoutStopSec = "120";
@@ -44,9 +47,9 @@ in
 
   systemd.services.honcho = {
     description = "Honcho API + deriver + Postgres + Redis (Docker Compose)";
-    after = [ "network-online.target" "docker.service" ];
+    after = [ "network-online.target" "docker.service" "home-manager-liempo.service" ];
     wants = [ "network-online.target" ];
-    requires = [ "docker.service" ];
+    requires = [ "docker.service" "home-manager-liempo.service" ];
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
       Type = "simple";
@@ -54,6 +57,7 @@ in
       RestartSec = "5";
       User = "liempo";
       WorkingDirectory = "${dotsDir}/docker/honcho";
+      ExecStartPre = "${pkgs.coreutils}/bin/test -r ${dockerEnvFile "honcho"}";
       ExecStart = "${compose} -f compose.yaml up --remove-orphans";
       ExecStop = "${compose} -f compose.yaml down";
       TimeoutStopSec = "120";
@@ -80,9 +84,9 @@ in
 
   systemd.services.jira = {
     description = "Jira MCP stack (Docker Compose)";
-    after = [ "network-online.target" "docker.service" "box.mount" ];
+    after = [ "network-online.target" "docker.service" "box.mount" "home-manager-liempo.service" ];
     wants = [ "network-online.target" ];
-    requires = [ "docker.service" "box.mount" ];
+    requires = [ "docker.service" "box.mount" "home-manager-liempo.service" ];
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
       Type = "simple";
@@ -90,6 +94,7 @@ in
       RestartSec = "5";
       User = "liempo";
       WorkingDirectory = "${dotsDir}/docker/jira";
+      ExecStartPre = "${pkgs.coreutils}/bin/test -r ${dockerEnvFile "jira"}";
       ExecStart = "${compose} -f compose.yaml up --remove-orphans";
       ExecStop = "${compose} -f compose.yaml down";
       TimeoutStopSec = "120";
@@ -98,9 +103,9 @@ in
 
   systemd.services.kdbx = {
     description = "KeePass KDBX MCP (Docker Compose)";
-    after = [ "network-online.target" "docker.service" "box.mount" ];
+    after = [ "network-online.target" "docker.service" "box.mount" "home-manager-liempo.service" ];
     wants = [ "network-online.target" ];
-    requires = [ "docker.service" "box.mount" ];
+    requires = [ "docker.service" "box.mount" "home-manager-liempo.service" ];
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
       Type = "simple";
@@ -108,6 +113,7 @@ in
       RestartSec = "5";
       User = "liempo";
       WorkingDirectory = "${dotsDir}/docker/kdbx";
+      ExecStartPre = "${pkgs.coreutils}/bin/test -r ${dockerEnvFile "kdbx"}";
       ExecStart = "${compose} -f compose.yaml up --remove-orphans";
       ExecStop = "${compose} -f compose.yaml down";
       TimeoutStopSec = "120";

@@ -4,6 +4,10 @@ Compose stacks under **`docker/`** on **homestation**. **systemd** starts them f
 
 Each subdirectory has a **`README.md`** with **initial setup** and **`.env`** only.
 
+### Secrets (`sops-nix`)
+
+Docker env files (`docker/honcho`, `docker/calendar`, `docker/jira`, `docker/kdbx`) are produced by **Home Manager** from [`secrets/docker-envs.yaml`](../secrets/docker-envs.yaml) (SOPS-encrypted). Keep the age private key at **`~/.dots/secrets/host.age.key`** (gitignored); back it up somewhere safe—without it you cannot decrypt or edit secrets. To change values: install `sops` (e.g. `nix-shell -p sops`), run `sops secrets/docker-envs.yaml` from the repo root (uses [`.sops.yaml`](../.sops.yaml)), then `nixos-rebuild switch --flake ~/.dots#homestation` so the decrypted files are written again under each stack directory. New clones must copy in their own key or re-key the file with `sops`.
+
 ---
 
 ## Shared MCP network

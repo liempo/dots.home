@@ -36,7 +36,36 @@ install -D example_config/data/sync-astra/calendar.json ~/.calendar/data/astra/c
 install -D example_config/data/sync-tonic/calendar.json ~/.calendar/data/tonic/calendar.json
 ```
 
-Edit the copied JSON under `~/.calendar/data/` for ICS URLs, Google OAuth, or other sync settings. For Google sync, place OAuth client JSON at `~/.calendar/credentials/google-oauth-client.json` and run the one-time auth flow described in Chronos / sync tooling when needed.
+Edit the copied JSON under `~/.calendar/data/` for ICS URLs, Google Calendar, or other sync settings. For Google sync, see [Google Calendar OAuth](#google-calendar-oauth-sync-astra) below.
+
+---
+
+## Google Calendar OAuth (sync-astra)
+
+The Google → Radicale worker is the Compose service **`sync-astra`**. It reads **`~/.calendar/data/astra/calendar.json`**, which must have `"sync_type": "google"` (see `example_config/data/sync-astra/calendar.json`).
+
+1. **Desktop OAuth client**  
+   In [Google Cloud Console](https://console.cloud.google.com/), create an OAuth client of type **Desktop app** and download the JSON. Install it as:
+
+   **`~/.calendar/credentials/google-oauth-client.json`**
+
+   (`sync-astra` mounts `~/.calendar/credentials` read-only at `/credentials`; `compose.yaml` sets `GOOGLE_CREDENTIALS_PATH` to that file.)
+
+2. **One-time token**  
+   From **`docker/calendar/`**, with **`docker/calendar/.env`** present (Compose substitutes `RADICALE_*` / interval for the service), run:
+
+   ```bash
+   docker compose run --rm -p 8090:8090 sync-astra python sync.py auth
+   ```
+
+   The container listens on **`0.0.0.0:8090`** (`OAUTH_PORT`); the host publishes **`127.0.0.1:8090`**. With `open_browser` disabled in the script, open the **authorization URL** printed in the terminal, sign in, and complete the redirect to `http://127.0.0.1:8090/...` on the same machine (or use an SSH port forward so that URL reaches your laptop).
+
+   On success, the refresh token is written to **`~/.calendar/data/astra/token.json`** (`GOOGLE_TOKEN_PATH` in compose).
+
+3. **Start the stack**  
+   After `token.json` exists, start or restart the stack as usual; **`sync-astra`** will refresh the token when needed.
+
+If the token is invalid and refresh fails, delete `~/.calendar/data/astra/token.json` and run the `docker compose run ... auth` command again.
 
 ---
 

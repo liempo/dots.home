@@ -1,7 +1,8 @@
-{ config, pkgs, ... }:
+{ config, pkgs, inputs, ... }:
 
 let
-  dotfiles = ./.;
+  root = ../.;
+  dotconfig = ./.; # not to be confused with NixOS configuration
   # Hermes alias to containerized Hermes agent 
   hermes = pkgs.writeShellScriptBin "hermes" ''
     exec docker run -it --rm \
@@ -18,22 +19,49 @@ let
   '';
 in
 {
+  imports = [ inputs."sops-nix".homeManagerModules.default ];
+
   home.username = "liempo";
   home.homeDirectory = "/home/liempo";
   home.stateVersion = "24.11";
 
-  home.packages = [ update hermes ];
-  home.file.".zshrc".source = "${dotfiles}/.zshrc";
+  sops = {
+    defaultSopsFile = root + "/secrets/docker-envs.yaml";
+    age.keyFile = "${config.home.homeDirectory}/.dots/secrets/host.age.key";
+    secrets.docker_honcho_env = {
+      path = "${config.home.homeDirectory}/.dots/docker/honcho/.env";
+      mode = "0600";
+    };
+    secrets.docker_calendar_env = {
+      path = "${config.home.homeDirectory}/.dots/docker/calendar/.env";
+      mode = "0600";
+    };
+    secrets.docker_jira_env = {
+      path = "${config.home.homeDirectory}/.dots/docker/jira/.env";
+      mode = "0600";
+    };
+    secrets.docker_kdbx_env = {
+      path = "${config.home.homeDirectory}/.dots/docker/kdbx/.env";
+      mode = "0600";
+    };
+  };
+
+  home.packages = [
+    update
+    hermes
+    pkgs.sops
+  ];
+  home.file.".zshrc".source = "${dotconfig}/.zshrc";
 
   programs.git.enable = true;
 
   programs.tmux = {
     enable = true;
-    extraConfig = builtins.readFile "${dotfiles}/.config/tmux/tmux.conf";
+    extraConfig = builtins.readFile "${dotconfig}/.config/tmux/tmux.conf";
   };
 
   xdg.configFile = {
-    "nvim".source = "${dotfiles}/.config/nvim";
+    "nvim".source = "${dotconfig}/.config/nvim";
   };
 }
 

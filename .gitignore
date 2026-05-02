@@ -1,6 +1,7 @@
 # Secrets / local data
 .env
 secrets/.age-key
+secrets/host.age.key
 
 # Python stuff
 __pycache__/

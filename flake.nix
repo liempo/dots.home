@@ -24,6 +24,7 @@
             ./system/hardware.nix
             ./system/configuration.nix
             ./system/libvirt.nix
+            ./system/nginx.nix
             ./system/networking.nix
             ./system/services.nix
 

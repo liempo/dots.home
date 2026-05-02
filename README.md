@@ -2,7 +2,7 @@
 
 **`~/.dots`** is Liempo’s declarative homelab: one headless **NixOS** host (**homestation**) where OS settings, user **`liempo`**’s dotfiles, and background apps are kept in this repo and applied with **`nixos-rebuild`** and **Home Manager**.
 
-**How things connect:** **`flake.nix`** pulls in **`system/`** (networking, storage, **Samba**, **libvirt**, **systemd** units) and **`home/liempo.nix`**. **systemd** starts **Docker Compose** trees under **`docker/`** on boot. Stacks attach to shared Docker network **`mcp-net`** so **Hermes**, **Honcho**, Chronos, Jira MCP, KDBX MCP, and friends resolve each other by container DNS (for example **`http://honcho_api:8000`**). Heavy workspace data sits on **`/box`** (mounted disk, exposed via SMB); Hermes bind-mounts **`/box`**. Per-stack state uses **`~`** paths such as **`~/.hermes`** and **`~/.calendar`**. For host bind ports vs **`mcp-net`**-only services, see **`docker/README.md`**.
+**How things connect:** **`flake.nix`** pulls in **`system/`** (networking, storage, **Samba**, **libvirt**, **nginx** for **`tonic`** Playwright proxy, **systemd** units) and **`home/liempo.nix`**. **systemd** starts **Docker Compose** trees under **`docker/`** on boot. Stacks attach to shared Docker network **`mcp-net`** so **Hermes**, **Honcho**, Chronos, Jira MCP, KDBX MCP, and friends resolve each other by container DNS (for example **`http://honcho_api:8000`**). Heavy workspace data sits on **`/box`** (mounted disk, exposed via SMB); Hermes bind-mounts **`/box`**. Per-stack state uses **`~`** paths such as **`~/.hermes`** and **`~/.calendar`**. For host bind ports vs **`mcp-net`**-only services, see **`docker/README.md`**.
 
 ---
 
@@ -27,6 +27,7 @@ flowchart TB
   repo --> system["system/\nNixOS modules"]
   repo --> home["home/\nHome Manager modules"]
   repo --> docker["docker/\nDocker Compose stacks"]
+  repo --> vm["vm/\nlibvirt domain (tonic)"]
 
   system --> cfg["configuration.nix\n(core OS config)"]
   system --> net["networking.nix\n(host networking)"]
@@ -91,6 +92,12 @@ sequenceDiagram
   systemd->>compose: ExecStart (WorkingDirectory=stack dir)
   compose->>stacks: Create/Start containers
 ```
+
+### VM (`vm/`)
+
+Homestation runs one Windows guest, **`tonic`** (**Windows 11 IoT Enterprise LTSC**), under **KVM/libvirt**. It carries the corporate VPN and browser access to internal **`tonic.com.au`** sites so the headless NixOS host does not run that workload. **`system/libvirt.nix`** reserves a stable NAT address for the guest; **`system/nginx.nix`** exposes **Playwright** on the guest to the rest of the machine via a reverse proxy. The libvirt domain is tracked as **`vm/tonic.xml`**.
+
+More detail (purpose, DHCP constants, regenerating **`tonic.xml`**, **`virsh define`**): **`vm/README.md`**.
 
 ---
 
@@ -257,6 +264,9 @@ The stacks are mostly bound to loopback for safety (except Hermes gateway/dashbo
 - **Overview & architecture** (this file): `README.md`
 - **NixOS entrypoint**: `flake.nix`
 - **Core OS config**: `system/configuration.nix`
+- **Libvirt / DHCP for `tonic`**: `system/libvirt.nix`
+- **`tonic` VM domain XML & rebuild notes**: `vm/README.md`, `vm/tonic.xml`
+- **Nginx reverse proxy (`tonic` Playwright)**: `system/nginx.nix`
 - **Systemd stack units**: `system/services.nix`
 - **Home Manager user config**: `home/liempo.nix`
 - **Compose stacks**:

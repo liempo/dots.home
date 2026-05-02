@@ -34,9 +34,7 @@ in
 
   config = {
     homestation.tonic_vm = tonic_vm;
-
     virtualisation.libvirtd.enable = true;
-
     systemd.services.libvirt-default-network-static-dhcp = {
       description = "Install libvirt default NAT XML (static DHCP lease for tonic)";
       after = [ "libvirtd-config.service" ];
@@ -53,34 +51,6 @@ in
     systemd.services.libvirtd = {
       requires = [ "libvirt-default-network-static-dhcp.service" ];
       after = [ "libvirt-default-network-static-dhcp.service" ];
-    };
-
-    services.nginx = {
-      enable = true;
-      recommendedProxySettings = true;
-      virtualHosts."tonic-mcp" = {
-        serverName = "_";
-        http2 = false;
-        extraConfig = "gzip off;";
-        listen = [
-          {
-            addr = "0.0.0.0";
-            port = tonic_vm.playwright_port;
-            ssl = false;
-          }
-        ];
-        locations."/" = {
-          proxyPass = "http://${tonic_vm.ip}:${toString tonic_vm.playwright_port}";
-          extraConfig = ''
-            proxy_http_version 1.1;
-            proxy_buffering off;
-            proxy_cache off;
-            proxy_read_timeout 86400s;
-            proxy_send_timeout 86400s;
-            proxy_set_header Connection "";
-          '';
-        };
-      };
     };
   };
 }

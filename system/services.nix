@@ -5,11 +5,12 @@ let
   compose = "${pkgs.docker-compose}/bin/docker-compose";
   # Populated by Home Manager sops-nix (see home/liempo.nix → secrets/*.yaml).
   dockerEnvFile = stack: "${dotsDir}/docker/${stack}/.env";
+  calendarEnvFile = "${config.users.users.liempo.home}/.calendar/radicale/.env";
 in
 
 {
   systemd.services.calendar = {
-    description = "Calendar stack — Radicale + sync (Docker Compose)";
+    description = "Calendar stack — Radicale + Radicalize + Chronos MCP (Docker Compose)";
     after = [ "network-online.target" "docker.service" "home-manager-liempo.service" ];
     wants = [ "network-online.target" ];
     requires = [ "docker.service" "home-manager-liempo.service" ];
@@ -20,7 +21,11 @@ in
       RestartSec = "5";
       User = "liempo";
       WorkingDirectory = "${dotsDir}/docker/calendar";
-      ExecStartPre = "${pkgs.coreutils}/bin/test -r ${dockerEnvFile "calendar"}";
+      Environment = [
+        "RADICALIZED_UID=${toString config.users.users.liempo.uid}"
+        "RADICALIZED_GID=${toString config.users.groups.${config.users.users.liempo.group}.gid}"
+      ];
+      ExecStartPre = "${pkgs.coreutils}/bin/test -r ${calendarEnvFile}";
       ExecStart = "${compose} -f compose.yaml up --remove-orphans";
       ExecStop = "${compose} -f compose.yaml down";
       TimeoutStopSec = "120";

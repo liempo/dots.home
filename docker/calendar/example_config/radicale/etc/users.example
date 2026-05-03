@@ -1,9 +1,0 @@
-# Example htpasswd file for Radicale (format depends on the image/config).
-# If you keep `[auth] type = none` in default.conf, this file is unused.
-#
-# If you switch to htpasswd auth, generate a real entry and save it to:
-#   ~/.calendar/radicale/etc/users
-#
-# Example (APR1 / MD5):
-#   liempo:$apr1$XXXXXXXXXXXXXXXX$YYYYYYYYYYYYYYYYYYYYYYYYY
-

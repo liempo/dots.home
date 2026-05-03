@@ -1,22 +1,8 @@
 name: calendar
 
-x-sync-env: &sync-env
-  SYNC_INTERVAL_SECONDS: ${SYNC_INTERVAL_SECONDS:-1800}
-  RADICALE_USER: ${RADICALE_USER:-}
-  RADICALE_PASSWORD: ${RADICALE_PASSWORD:-}
-  RADICALE_BASE_URL: http://radicale:5232
-
-x-calendar-sync: &calendar-sync
-  build: ./sync
-  depends_on:
-    radicale:
-      condition: service_healthy
-  restart: unless-stopped
-  networks:
-    - default
-    - mcp-net
-  environment:
-    <<: *sync-env
+x-calendar-env: &calendar-env
+  env_file:
+    - ${HOME}/.calendar/radicale/.env
 
 services:
 
@@ -27,8 +13,8 @@ services:
     security_opt:
       - "no-new-privileges=true"
     volumes:
-      - ~/.calendar/radicale/etc:/radicale/etc
-      - ~/.calendar/radicale/var:/radicale/var
+      - ${HOME}/.calendar/radicale/etc:/radicale/etc
+      - ${HOME}/.calendar/radicale/var:/radicale/var
     ports:
       - "127.0.0.1:5232:5232"
     restart: unless-stopped
@@ -48,6 +34,7 @@ services:
   chronos-mcp:
     container_name: chronos-mcp
     image: python:3.12-slim
+    <<: *calendar-env
     depends_on:
       radicale:
         condition: service_healthy
@@ -55,7 +42,7 @@ services:
     environment:
       FASTMCP_CHECK_FOR_UPDATES: "off"
     volumes:
-      - ~/.calendar/chronos/accounts.json:/root/.chronos/accounts.json
+      - ${HOME}/.calendar/chronos/accounts.json:/root/.chronos/accounts.json:ro
     command:
       - sh
       - -c
@@ -69,29 +56,31 @@ services:
       - default
       - mcp-net
 
-  sync-personal:
-    <<: *calendar-sync
-    container_name: sync-personal
-    volumes:
-      - ~/.calendar/data/personal:/data
 
-  sync-astra:
-    <<: *calendar-sync
-    container_name: sync-astra
+  radicalize:
+    container_name: radicalize
+    build:
+      context: ./radicalize
+      dockerfile: Dockerfile
+    image: radicalize:local
+    depends_on:
+      radicale:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - default
+      - mcp-net
     environment:
-      <<: *sync-env
-      OAUTH_PORT: "8090"
-      GOOGLE_CREDENTIALS_PATH: "/credentials/google-oauth-client.json"
-      GOOGLE_TOKEN_PATH: "/data/token.json"
+      RADICALIZE_DATA: /data/calendar
+      RADICALE_BASE_URL: http://radicale:5232
+      RADICALIZED_UID: "${RADICALIZED_UID:-1000}"
+      RADICALIZED_GID: "${RADICALIZED_GID:-100}"
+    command: ["run", "--data-dir", "/data/calendar"]
     volumes:
-      - ~/.calendar/data/astra:/data
-      - ~/.calendar/credentials:/credentials:ro
-
-  sync-tonic:
-    <<: *calendar-sync
-    container_name: sync-tonic
-    volumes:
-      - ~/.calendar/data/tonic:/data
+      - ${HOME}/.calendar/radicalize:/data/calendar
+      - ${HOME}/.calendar/radicale/.env:/data/calendar/.env
+      # Writable bind (like .env): entrypoint `chown -R` on RADICALIZE_DATA includes credentials/.
+      - ${HOME}/.calendar/google/oauth.json:/data/calendar/credentials/google-oauth-client.json
 
 networks:
   mcp-net:

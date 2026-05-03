@@ -1,3 +1,6 @@
 [submodule "docker/honcho/src"]
 	path = docker/honcho/src
 	url = https://github.com/plastic-labs/honcho
+[submodule "docker/calendar/radicalize"]
+	path = docker/calendar/radicalize
+	url = git@github.com.personal:liempo/radicalize.git

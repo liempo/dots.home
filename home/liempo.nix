@@ -17,6 +17,22 @@ let
   update = pkgs.writeShellScriptBin "update" ''
     exec sudo nixos-rebuild switch --flake "$HOME/.dots#homestation"
   '';
+  # Radicalize via calendar stack compose (same paths as calendar.service)
+  radicalize = pkgs.writeShellScriptBin "radicalize" ''
+    set -e
+    _cal="${config.home.homeDirectory}/.dots/docker/calendar"
+    cd "$_cal" || exit 1
+    export RADICALIZED_UID="$(id -u)"
+    export RADICALIZED_GID="$(id -g)"
+    _compose="${pkgs.docker-compose}/bin/docker-compose"
+    _tty=
+    if [ -t 0 ] && [ -t 1 ]; then
+      _tty=-it
+    fi
+    exec "$_compose" -f compose.yaml run --rm $_tty \
+      -p 127.0.0.1:8090:8090 \
+      radicalize "$@" --data-dir /data/calendar
+  '';
 in
 {
   imports = [ inputs."sops-nix".homeManagerModules.default ];
@@ -34,7 +50,17 @@ in
     };
     secrets.radicale_env = {
       sopsFile = root + "/secrets/calendar.yaml";
-      path = "${config.home.homeDirectory}/.dots/docker/calendar/.env";
+      path = "${config.home.homeDirectory}/.calendar/radicale/.env";
+      mode = "0600";
+    };
+    secrets.chronos_accounts_json = {
+      sopsFile = root + "/secrets/calendar.yaml";
+      path = "${config.home.homeDirectory}/.calendar/chronos/accounts.json";
+      mode = "0600";
+    };
+    secrets.google_oauth_client_json = {
+      sopsFile = root + "/secrets/calendar.yaml";
+      path = "${config.home.homeDirectory}/.calendar/google/oauth.json";
       mode = "0600";
     };
     secrets.jira_env = {
@@ -51,9 +77,11 @@ in
 
   home.packages = [
     update
+    radicalize
     hermes
     pkgs.sops
   ];
+
   home.file.".zshrc".source = "${dotconfig}/.zshrc";
 
   programs.git.enable = true;

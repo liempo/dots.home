@@ -2,7 +2,7 @@
 
 **`~/.dots`** is Liempo’s declarative homelab: one headless **NixOS** host (**homestation**) where OS settings, user **`liempo`**’s dotfiles, and background apps are kept in this repo and applied with **`nixos-rebuild`** and **Home Manager**.
 
-**How things connect:** **`flake.nix`** pulls in **`system/`** (networking, storage, **Samba**, **libvirt**, **nginx** for **`tonic`** Playwright proxy, **systemd** units) and **`home/liempo.nix`**. **systemd** starts **Docker Compose** trees under **`docker/`** on boot. Stacks attach to shared Docker network **`mcp-net`** so **Hermes**, **Honcho**, Chronos, Jira MCP, KDBX MCP, and friends resolve each other by container DNS (for example **`http://honcho_api:8000`**). Heavy workspace data sits on **`/box`** (mounted disk, exposed via SMB); Hermes bind-mounts **`/box`**. Per-stack state uses **`~`** paths such as **`~/.hermes`** and **`~/.calendar`**. For host bind ports vs **`mcp-net`**-only services, see **`docker/README.md`**.
+**How things connect:** **`flake.nix`** pulls in **`system/`** (networking, storage, **Samba**, **libvirt**, **nginx** for **`tonic`** Playwright proxy, **systemd** units) and **`home/liempo.nix`**. **systemd** starts **Docker Compose** trees under **`docker/`** on boot. Stacks attach to shared Docker network **`mcp-net`** so **Hermes**, **Honcho**, Chronos, Jira MCP, KDBX MCP, and friends resolve each other by container DNS (for example **`http://honcho_api:8000`**). Heavy workspace data sits on **`/box`** (mounted disk, exposed via SMB); Hermes bind-mounts **`/box`**. Per-stack state uses **`~`** paths such as **`~/.hermes`** and **`~/.calendar`** (Radicale **`radicale/etc`**, **`radicale/var`**, **`radicale/.env`**, Chronos **`chronos/`**, Google OAuth **`google/oauth.json`**, Radicalize **`radicalize/`**). For host bind ports vs **`mcp-net`**-only services, see **`docker/README.md`**.
 
 ---
 
@@ -14,6 +14,9 @@ This repository is a **host configuration + self-hosted services** monorepo:
 - **Home Manager** manages user-level dotfiles for `liempo`.
 - **systemd services** start/stop several **Docker Compose stacks** under `docker/`.
 - **`docker/honcho/src`** is a **git submodule**: the upstream **Honcho** application.
+- **`docker/calendar/radicalize`** is a **git submodule**: **[Radicalize](https://github.com/liempo/radicalize)** (Compose builds the image from this path).
+
+After clone, run **`git submodule update --init --recursive`**, or clone with **`--recurse-submodules`**.
 
 ---
 
@@ -39,7 +42,7 @@ flowchart TB
 
   docker --> honcho["honcho/\nHoncho API + worker + DB"]
   docker --> hermes["hermes/\nHermes gateway + dashboard"]
-  docker --> calendar["calendar/\nRadicale + sync workers + MCP"]
+  docker --> calendar["calendar/\nRadicale + Radicalize + MCP"]
   docker --> stremio["stremio/\nStremio server"]
   docker --> jira["jira/\nJira MCP"]
   docker --> kdbx["kdbx/\nKeePass MCP"]
@@ -147,7 +150,7 @@ flowchart LR
   subgraph host["Host filesystem"]
     hermes_data["~/.hermes"]
     box_host["/box → /box\nin hermes + dashboard"]
-    calendar_data["~/.calendar"]
+    calendar_data["~/.calendar/\nradicale/ + chronos/ +\ngoogle/ + radicalize/"]
   end
 
   hermes --- hermes_data
@@ -188,41 +191,36 @@ sequenceDiagram
 
 ### Calendar stack (`docker/calendar`)
 
-This stack provides a **local CalDAV server** (Radicale) plus one-or-more sync workers that publish `.ics` calendars into Radicale.
+This stack provides a **local CalDAV server** ([Radicale](https://radicale.org/)), **[Radicalize](https://github.com/liempo/radicalize)** to merge Google Calendar / ICS / CalDAV sources into Radicale, and **Chronos MCP** for agents on **`mcp-net`**.
+
+Radicalize application source is a git submodule:
+
+- Submodule path: **`docker/calendar/radicalize`**
+- Remote (see **`.gitmodules`**): **`git@github.com.personal:liempo/radicalize.git`**
 
 Services (from `docker/calendar/compose.yaml`):
 
 - **`radicale`**
   - Listens: `127.0.0.1:5232`
-  - Persistent host config/data:
-    - `~/.calendar/radicale/etc:/radicale/etc`
-    - `~/.calendar/radicale/var:/radicale/var`
-- **`sync-*` containers** (examples: `sync-personal`, `sync-astra`, `sync-tonic`)
-  - Build context: `docker/calendar/sync`
-  - Input config: `/data/calendar.json` (mounted from `~/.calendar/data/<name>/calendar.json`)
-  - Behavior: periodically generate/fetch ICS and upload into Radicale via HTTP `PUT`
+  - Persistent host config/data: **`~/.calendar/radicale/etc`**, **`~/.calendar/radicale/var`**
+- **`radicalize`**
+  - Image built from **`docker/calendar/radicalize`** (submodule checkout)
+  - Host data dir: **`~/.calendar/radicalize`** (sources/tokens from Radicalize); OAuth client JSON at **`~/.calendar/google/oauth.json`** (SOPS) bind-mounted as **`credentials/google-oauth-client.json`** in the container
+  - Image entrypoint **`chown`**s the data dir then drops to **`RADICALIZED_UID:GID`** (**`calendar.service`** exports **`RADICALIZED_UID`** / **`RADICALIZED_GID`** for **`liempo:users`**, matching [liempo/radicalize](https://github.com/liempo/radicalize))
+  - If **`~/.calendar/radicalize`** was already created as **root**, run **`sudo chown -R "$USER":users ~/.calendar/radicalize`** once before the next Home Manager / **`nixos-rebuild switch`**
+  - Reads **`~/.calendar/radicale/.env`** (same **`RADICALE_*`** / **`SYNC_*`** as Compose) mounted into the container data dir
 - **`chronos-mcp`**
-  - Runs [Chronos MCP](https://github.com/democratize-technology/chronos-mcp) (FastMCP) with **streamable HTTP** on container port **8000**, attached to **`mcp-net`** (no host port in `compose.yaml`; clients on **`mcp-net`** use e.g. `http://chronos-mcp:8000/mcp`)
-  - Injects `CALDAV_*` from `RADICALE_*` in `docker/calendar/.env`; mounts `~/.calendar/chronos/accounts.json` → `/root/.chronos/accounts.json` for optional [multi-account](https://github.com/democratize-technology/chronos-mcp#configuration) entries (empty `accounts` keeps the default account env-only)
+  - Runs [Chronos MCP](https://github.com/democratize-technology/chronos-mcp) (FastMCP) with **streamable HTTP** on container port **8000**, attached to **`mcp-net`** (e.g. `http://chronos-mcp:8000/mcp`)
+  - **`env_file`**: **`~/.calendar/radicale/.env`**; mounts **`~/.calendar/chronos/accounts.json`** → **`/root/.chronos/accounts.json`** for [multi-account](https://github.com/democratize-technology/chronos-mcp#configuration) entries
 
 ```mermaid
 flowchart LR
-  client["CalDAV client\n(iOS/macOS/DAVx⁵/etc)"] --> radicale["Radicale\n127.0.0.1:5232"]
-
-  subgraph syncers["Sync containers (periodic)"]
-    sync_personal["sync-personal\nICS feed → Radicale"]
-    sync_astra["sync-astra\nGoogle OAuth → ICS → Radicale"]
-    sync_tonic["sync-tonic\nICS feed → Radicale"]
-  end
-
-  sync_personal --> radicale
-  sync_astra --> radicale
-  sync_tonic --> radicale
-
+  client["CalDAV client\n(iOS/macOS/DAVx5/etc)"] --> radicale["Radicale\n127.0.0.1:5232"]
+  radicalize["radicalize\nperiodic sync"] --> radicale
   mcp["chronos-mcp\nmcp-net :8000"] --> radicale
 ```
 
-Setup and `.env` live in `docker/calendar/README.md`. Host and **`mcp-net`** exposure for all stacks: `docker/README.md`.
+Secrets and host paths are documented in **`docker/calendar/README.md`**. **`mcp-net`** exposure summary: **`docker/README.md`**.
 
 ---
 
@@ -251,7 +249,7 @@ The stacks are mostly bound to loopback for safety (except Hermes gateway/dashbo
 - **Honcho**: no host publishes; **`honcho_api`** on **`mcp-net`** (container **8000**); Postgres/Redis only inside the Honcho Compose network
 - **Calendar**
   - `5232/tcp` (host bind: `127.0.0.1:5232`)
-  - **`chronos-mcp`**: no host publish; **`mcp-net`** only (container **8000**)
+  - **`chronos-mcp`** / **`radicalize`**: no host publish; **`mcp-net`** only (Chronos **8000**)
 - **Stremio**
   - `11470/tcp` (host bind: `127.0.0.1:11470`)
 - **Jira MCP / KDBX MCP**

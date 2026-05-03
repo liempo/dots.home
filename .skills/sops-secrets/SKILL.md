@@ -29,18 +29,10 @@ Authoritative wiring is [`home/liempo.nix`](../../home/liempo.nix) (`sops.secret
 | `secrets/` file | Secret name(s) in YAML | Output path |
 |-----------------|------------------------|-------------|
 | [`secrets/default.yaml`](../../secrets/default.yaml) | `honcho_env` | `~/.dots/docker/honcho/.env` |
-| [`secrets/calendar.yaml`](../../secrets/calendar.yaml) | `radicale_env`, `chronos_json` | `~/.calendar/.env`, `~/.calendar/chronos/accounts.json` |
-| [`secrets/calendar_oauth.yaml`](../../secrets/calendar_oauth.yaml) | `google_oauth_client_json` | `~/.calendar/credentials/google-oauth-client.json` |
+| [`secrets/calendar.yaml`](../../secrets/calendar.yaml) | `radicale_env`, `chronos_accounts_json`, `google_oauth_client_json` | `~/.calendar/radicale/.env`, `~/.calendar/chronos/accounts.json`, `~/.calendar/google/oauth.json` |
 | [`secrets/tonic.yaml`](../../secrets/tonic.yaml) | `jira_env`, `kdbx_env` | `~/.dots/docker/jira/.env`, `~/.dots/docker/kdbx/.env` |
 
-If Nix references a file that does not exist yet, create it (same age rules as other `secrets/*.yaml`):
-
-```bash
-export SOPS_AGE_KEY_FILE="$HOME/.dots/secrets/host.age.key"
-sops secrets/calendar_oauth.yaml
-```
-
-Add the keys your `home/liempo.nix` expects (e.g. `google_oauth_client_json`), save, and commit the encrypted file only.
+Calendar keys all live in [`secrets/calendar.yaml`](../../secrets/calendar.yaml); edit that file only (no separate OAuth file).
 
 ## Edit workflow
 
@@ -64,9 +56,9 @@ Add the keys your `home/liempo.nix` expects (e.g. `google_oauth_client_json`), s
 ```bash
 export SOPS_AGE_KEY_FILE="$HOME/.dots/secrets/host.age.key"
 sops -d secrets/calendar.yaml > /tmp/calendar.plain.yaml
-# edit, then:
-sops -e /tmp/calendar.plain.yaml > secrets/calendar.yaml
-rm /tmp/calendar.plain.yaml
+# edit /tmp/calendar.plain.yaml, then from ~/.dots (so `.sops.yaml` applies):
+cp /tmp/calendar.plain.yaml secrets/calendar.yaml && sops -e -i secrets/calendar.yaml
+rm -f /tmp/calendar.plain.yaml
 ```
 
 Prefer in-place `sops secrets/...` when you can.

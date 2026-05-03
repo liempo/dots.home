@@ -6,7 +6,13 @@ Each subdirectory has a **`README.md`** with **initial setup** and **`.env`** on
 
 ### Secrets (`sops-nix`)
 
-Docker env files (`docker/honcho`, `docker/calendar`, `docker/jira`, `docker/kdbx`) are produced by **Home Manager** from [`secrets/docker-envs.yaml`](../secrets/docker-envs.yaml) (SOPS-encrypted). Keep the age private key at **`~/.dots/secrets/host.age.key`** (gitignored); back it up somewhere safe—without it you cannot decrypt or edit secrets. To change values: install `sops` (e.g. `nix-shell -p sops`), run `sops secrets/docker-envs.yaml` from the repo root (uses [`.sops.yaml`](../.sops.yaml)), then `nixos-rebuild switch --flake ~/.dots#homestation` so the decrypted files are written again under each stack directory. New clones must copy in their own key or re-key the file with `sops`.
+Docker env files (`docker/honcho`, `docker/calendar`, `docker/jira`, `docker/kdbx`) are produced by **Home Manager** from SOPS-encrypted YAML under **`secrets/`**:
+
+- [`secrets/default.yaml`](../secrets/default.yaml) — Honcho (`honcho_env` → `docker/honcho/.env`)
+- [`secrets/calendar.yaml`](../secrets/calendar.yaml) — Radicale (`radicale_env` → `docker/calendar/.env`)
+- [`secrets/tonic.yaml`](../secrets/tonic.yaml) — Jira MCP + KeePass (`jira_env`, `kdbx_env` → `docker/jira/.env`, `docker/kdbx/.env`)
+
+Keep the age private key at **`~/.dots/secrets/host.age.key`** (gitignored); back it up somewhere safe—without it you cannot decrypt or edit secrets. To change values: install `sops` (e.g. `nix-shell -p sops`), run `sops secrets/<file>.yaml` for the stack you need (uses [`.sops.yaml`](../.sops.yaml)), then `nixos-rebuild switch --flake ~/.dots#homestation` so the decrypted files are written again under each stack directory. New clones must copy in their own key or re-key with `sops`.
 
 ---
 

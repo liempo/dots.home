@@ -26,21 +26,24 @@ in
   home.stateVersion = "24.11";
 
   sops = {
-    defaultSopsFile = root + "/secrets/docker-envs.yaml";
+    defaultSopsFile = root + "/secrets/default.yaml";
     age.keyFile = "${config.home.homeDirectory}/.dots/secrets/host.age.key";
-    secrets.docker_honcho_env = {
+    secrets.honcho_env = {
       path = "${config.home.homeDirectory}/.dots/docker/honcho/.env";
       mode = "0600";
     };
-    secrets.docker_calendar_env = {
+    secrets.radicale_env = {
+      sopsFile = root + "/secrets/calendar.yaml";
       path = "${config.home.homeDirectory}/.dots/docker/calendar/.env";
       mode = "0600";
     };
-    secrets.docker_jira_env = {
+    secrets.jira_env = {
+      sopsFile = root + "/secrets/tonic.yaml";
       path = "${config.home.homeDirectory}/.dots/docker/jira/.env";
       mode = "0600";
     };
-    secrets.docker_kdbx_env = {
+    secrets.kdbx_env = {
+      sopsFile = root + "/secrets/tonic.yaml";
       path = "${config.home.homeDirectory}/.dots/docker/kdbx/.env";
       mode = "0600";
     };

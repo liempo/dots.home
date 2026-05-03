@@ -3,7 +3,7 @@
 let
   dotsDir = "${config.users.users.liempo.home}/.dots";
   compose = "${pkgs.docker-compose}/bin/docker-compose";
-  # Populated by Home Manager sops-nix (see home/liempo.nix → secrets/docker-envs.yaml).
+  # Populated by Home Manager sops-nix (see home/liempo.nix → secrets/*.yaml).
   dockerEnvFile = stack: "${dotsDir}/docker/${stack}/.env";
 in
 

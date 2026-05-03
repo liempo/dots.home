@@ -11,9 +11,9 @@ systemd: **`calendar`** · compose: [`compose.yaml`](compose.yaml)
 | Host | In container | Purpose |
 | ---- | -------------- | ------- |
 | **`~/.calendar/radicale/etc`**, **`~/.calendar/radicale/var`** | `/radicale/etc`, `/radicale/var` | Radicale config + database (same tree as **`radicale/.env`**) |
-| **`~/.calendar/radicale/.env`** | `env_file` (Chronos); overlay **`/data/calendar/.env`** (Radicalize, **not** `:ro`) | **`radicale_env`** from **`secrets/calendar.yaml`** (SOPS → Home Manager); read-write so the Radicalize entrypoint **`chown -R`** on the data dir does not fail on **`.env`** |
+| **`~/.calendar/radicale/.env`** | `env_file` (Chronos); overlay **`/data/calendar/.env`** (Radicalize, **`:ro`**) | **`radicale_env`** from **`secrets/calendar.yaml`** (SOPS → Home Manager); read-only in Radicalize (entrypoint skips **`chown`** on **`.env`**) |
 | **`~/.calendar/chronos/accounts.json`** | `/root/.chronos/accounts.json` | Chronos MCP (**`chronos_accounts_json`**) |
-| **`~/.calendar/google/oauth.json`** | **`/data/calendar/credentials/google-oauth-client.json`** | Google Desktop OAuth client JSON (**`google_oauth_client_json`**); bind-mounted under Radicalize’s default credentials name (**writable** bind, like **`.env`**, for **`chown`**) |
+| **`~/.calendar/google/oauth.json`** | **`/data/calendar/google/oauth.json`** (**`:ro`**) | Google Desktop OAuth client JSON (**`google_oauth_client_json`**); read-only (entrypoint skips recursive **`chown`** on **`google/`**) |
 | **`~/.calendar/radicalize`** | `/data/calendar` | Radicalize data: **`sources/`**, **`tokens/`**, optional **`vdirsyncer/`** (OAuth client file is the mount above, not stored inside this tree) |
 
 If **`~/.calendar/radicalize`** was first created by Docker as **root**, fix ownership once:
@@ -61,7 +61,7 @@ cp -a ~/.calendar/radicalized/credentials/google-oauth-client.json ~/.calendar/g
 After Home Manager applies this flake’s **`home/liempo.nix`**, the **`radicalize`** command runs **`docker compose run`** in **`~/.dots/docker/calendar/`** with **`RADICALIZED_UID`** / **`RADICALIZED_GID`**, **`127.0.0.1:8090:8090`** published for OAuth, and **`--data-dir /data/calendar`** appended (same as the stack). Example: **`radicalize sync`**, **`radicalize list`**.
 
 - **CalDAV sources** need **`vdirsyncer`** on the image **`PATH`** if you use **`sync_type: caldav`**.
-- **Google OAuth client JSON** on the host is **`~/.calendar/google/oauth.json`** (SOPS → HM). Inside the container it appears as **`/data/calendar/credentials/google-oauth-client.json`** (Radicalize default).
+- **Google OAuth client JSON** on the host is **`~/.calendar/google/oauth.json`** (SOPS → HM). Inside the container it appears as **`/data/calendar/google/oauth.json`** (Radicalize default).
 - **Google OAuth from Docker** (browser flow): publish **8090**; set **`RADICALIZED_UID`** / **`RADICALIZED_GID`** (same as in [Radicalize container user](#radicalize-container-user)); replace **`SOURCE_ID`** with the **`id`** from **`~/.calendar/radicalize/sources/`**:  
   **`docker compose run --rm -p 8090:8090 radicalize auth SOURCE_ID --data-dir /data/calendar`**  
   Use the same **`-p 8090:8090`** when running **`radicalize add`** if you answer **yes** to “Run Google OAuth now?”.

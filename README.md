@@ -205,7 +205,7 @@ Services (from `docker/calendar/compose.yaml`):
   - Persistent host config/data: **`~/.calendar/radicale/etc`**, **`~/.calendar/radicale/var`**
 - **`radicalize`**
   - Image built from **`docker/calendar/radicalize`** (submodule checkout)
-  - Host data dir: **`~/.calendar/radicalize`** (sources/tokens from Radicalize); OAuth client JSON at **`~/.calendar/google/oauth.json`** (SOPS) bind-mounted as **`credentials/google-oauth-client.json`** in the container
+  - Host data dir: **`~/.calendar/radicalize`** (sources/tokens from Radicalize); OAuth client JSON at **`~/.calendar/google/oauth.json`** (SOPS) bind-mounted as **`/data/calendar/google/oauth.json`** in the container
   - Image entrypoint **`chown`**s the data dir then drops to **`RADICALIZED_UID:GID`** (**`calendar.service`** exports **`RADICALIZED_UID`** / **`RADICALIZED_GID`** for **`liempo:users`**, matching [liempo/radicalize](https://github.com/liempo/radicalize))
   - If **`~/.calendar/radicalize`** was already created as **root**, run **`sudo chown -R "$USER":users ~/.calendar/radicalize`** once before the next Home Manager / **`nixos-rebuild switch`**
   - Reads **`~/.calendar/radicale/.env`** (same **`RADICALE_*`** / **`SYNC_*`** as Compose) mounted into the container data dir

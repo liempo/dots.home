@@ -78,9 +78,8 @@ services:
     command: ["run", "--data-dir", "/data/calendar"]
     volumes:
       - ${HOME}/.calendar/radicalize:/data/calendar
-      - ${HOME}/.calendar/radicale/.env:/data/calendar/.env
-      # Writable bind (like .env): entrypoint `chown -R` on RADICALIZE_DATA includes credentials/.
-      - ${HOME}/.calendar/google/oauth.json:/data/calendar/credentials/google-oauth-client.json
+      - ${HOME}/.calendar/radicale/.env:/data/calendar/.env:ro
+      - ${HOME}/.calendar/google/oauth.json:/data/calendar/google/oauth.json:ro
 
 networks:
   mcp-net:
